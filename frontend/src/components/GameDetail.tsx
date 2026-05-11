@@ -99,6 +99,7 @@ export default function GameDetail({ id }: { id: number }) {
               )}
               <LikeButton itemType="game" itemId={game.id} likedClass="text-emerald-400" />
               <FriendsLiked itemType="game" itemId={game.id} ringColor="ring-emerald-500/50" />
+            </div>
           </div>
         </div>
 

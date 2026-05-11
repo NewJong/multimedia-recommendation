@@ -109,6 +109,7 @@ export default function MovieDetail({ id }: { id: number }) {
               )}
               <LikeButton itemType="movie" itemId={movie.id} likedClass="text-rose-400" />
               <FriendsLiked itemType="movie" itemId={movie.id} ringColor="ring-rose-500/50" />
+            </div>
 
             {/* Crew */}
             {movie.director && (

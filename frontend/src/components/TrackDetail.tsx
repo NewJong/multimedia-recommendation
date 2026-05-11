@@ -92,6 +92,7 @@ export default function TrackDetail({ id }: { id: number }) {
               {fmtDur(track.duration_ms) && <div><p className="text-white font-bold text-lg leading-none">{fmtDur(track.duration_ms)}</p><p className="text-zinc-500 text-xs mt-0.5">duration</p></div>}
               <LikeButton itemType="track" itemId={track.id} likedClass="text-violet-400" />
               <FriendsLiked itemType="track" itemId={track.id} ringColor="ring-violet-500/50" />
+            </div>
           </div>
         </div>
 
