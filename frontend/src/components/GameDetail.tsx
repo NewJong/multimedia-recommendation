@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import LikeButton from './LikeButton';
 import FriendsLiked from './FriendsLiked';
+import { API_BASE } from '../lib/api';
 
 interface Game {
   id: number; title: string; genre: string; genres: string[]; tags: string[];
@@ -23,7 +24,7 @@ export default function GameDetail({ id }: { id: number }) {
 
   useEffect(() => {
     const gid = id || Number(window.location.pathname.split('/').pop());
-    fetch(`http://localhost:8000/games/${gid}`)
+    fetch(`${API_BASE}/games/${gid}`)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(setGame)
       .catch(() => setError(true))

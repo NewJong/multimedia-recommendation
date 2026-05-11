@@ -1,7 +1,10 @@
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged, signInWithPopup } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth';
+import { Heart } from 'lucide-react';
 import type { User } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
+import { useAuth } from '../hooks/useAuth';
+import { API_BASE } from '../lib/api';
 
 interface Likes { tracks: any[]; movies: any[]; games: any[] }
 type Tab = 'music' | 'movies' | 'games' | 'friends';
@@ -22,11 +25,6 @@ const TABS: { key: Tab; label: string; active: string; dot: string }[] = [
   { key: 'friends', label: 'Friends', active: 'text-sky-300 bg-sky-500/12 border-sky-500/30',            dot: 'bg-sky-400' },
 ];
 
-const HeartFilled = ({ cls }: { cls: string }) => (
-  <svg className={cls} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/>
-  </svg>
-);
 
 function TrackCard({ t, onUnlike }: { t: any; onUnlike: (id: number) => void }) {
   const genres: string[] = Array.isArray(t.genres) ? t.genres.slice(0, 2) : [];
@@ -52,7 +50,7 @@ function TrackCard({ t, onUnlike }: { t: any; onUnlike: (id: number) => void }) 
           onClick={e => { e.preventDefault(); e.stopPropagation(); onUnlike(t.id); }}
           className="absolute top-2 right-2 z-10 p-1.5 rounded-full border border-zinc-700 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:border-violet-400"
         >
-          <HeartFilled cls="w-4 h-4 text-violet-400" />
+          <Heart size={16} className="text-violet-400" fill="currentColor" />
         </button>
       </div>
       <p className="mt-2 text-sm font-medium text-white truncate group-hover:text-violet-200 transition-colors">{t.name}</p>
@@ -91,7 +89,7 @@ function MovieCard({ m, onUnlike }: { m: any; onUnlike: (id: number) => void }) 
           onClick={e => { e.preventDefault(); e.stopPropagation(); onUnlike(m.id); }}
           className="absolute top-2 right-2 z-10 p-1.5 rounded-full border border-zinc-700 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:border-rose-400"
         >
-          <HeartFilled cls="w-4 h-4 text-rose-400" />
+          <Heart size={16} className="text-rose-400" fill="currentColor" />
         </button>
       </div>
       <p className="mt-2 text-sm font-medium text-white truncate group-hover:text-rose-200 transition-colors">{m.title}</p>
@@ -126,7 +124,7 @@ function GameCard({ g, onUnlike }: { g: any; onUnlike: (id: number) => void }) {
           onClick={e => { e.preventDefault(); e.stopPropagation(); onUnlike(g.id); }}
           className="absolute bottom-2 right-2 z-10 p-1.5 rounded-full border border-zinc-700 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:border-emerald-400"
         >
-          <HeartFilled cls="w-4 h-4 text-emerald-400" />
+          <Heart size={16} className="text-emerald-400" fill="currentColor" />
         </button>
       </div>
       <p className="mt-2 text-sm font-medium text-white truncate group-hover:text-emerald-200 transition-colors">{g.title}</p>
@@ -136,8 +134,7 @@ function GameCard({ g, onUnlike }: { g: any; onUnlike: (id: number) => void }) {
 }
 
 export default function ProfilePage() {
-  const [user, setUser]               = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const { user, loading: authLoading } = useAuth();
   const [likes, setLikes]             = useState<Likes>({ tracks: [], movies: [], games: [] });
   const [likesLoading, setLikesLoading] = useState(false);
   const [tab, setTab]                 = useState<Tab>('music');
@@ -147,31 +144,23 @@ export default function ProfilePage() {
   const [searchResults, setSearchRes] = useState<FriendUser[]>([]);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async u => {
-      setUser(u);
-      setAuthLoading(false);
-      if (u) {
-        setLikesLoading(true);
-        try {
-          const r = await fetch(`http://localhost:8000/likes/${u.uid}`);
-          const data: Likes = await r.json();
-          setLikes(data);
-          if (data.tracks.length)      setTab('music');
-          else if (data.movies.length) setTab('movies');
-          else if (data.games.length)  setTab('games');
-        } catch {}
-        setLikesLoading(false);
-        // load friends data
-        Promise.all([
-          fetch(`http://localhost:8000/friends/${u.uid}`).then(r => r.json()),
-          fetch(`http://localhost:8000/friends/${u.uid}/requests`).then(r => r.json()),
-        ]).then(([f, rq]) => {
-          setFriends(f ?? []);
-          setRequests(rq ?? []);
-        }).catch(() => {});
-      }
-    });
-  }, []);
+    if (authLoading || !user) return;
+    setLikesLoading(true);
+    fetch(`${API_BASE}/likes/${user.uid}`)
+      .then(r => r.json())
+      .then((data: Likes) => {
+        setLikes(data);
+        if (data.tracks.length)      setTab('music');
+        else if (data.movies.length) setTab('movies');
+        else if (data.games.length)  setTab('games');
+      })
+      .catch(() => {})
+      .finally(() => setLikesLoading(false));
+    Promise.all([
+      fetch(`${API_BASE}/friends/${user.uid}`).then(r => r.json()),
+      fetch(`${API_BASE}/friends/${user.uid}/requests`).then(r => r.json()),
+    ]).then(([f, rq]) => { setFriends(f ?? []); setRequests(rq ?? []); }).catch(() => {});
+  }, [authLoading, user?.uid]);
 
   if (authLoading) return (
     <div className="py-20 text-center text-zinc-600">Loading...</div>
@@ -204,7 +193,7 @@ export default function ProfilePage() {
       games:  itemType === 'game'  ? prev.games.filter(g => g.id !== itemId)  : prev.games,
     }));
     if (user) {
-      fetch(`http://localhost:8000/likes/${user.uid}/${itemType}/${itemId}`, { method: 'POST' }).catch(() => {});
+      fetch(`${API_BASE}/likes/${user.uid}/${itemType}/${itemId}`, { method: 'POST' }).catch(() => {});
     }
   }
 
@@ -215,7 +204,7 @@ export default function ProfilePage() {
     setSearch(q);
     if (q.length < 2) { setSearchRes([]); return; }
     try {
-      const r = await fetch(`http://localhost:8000/users/search?q=${encodeURIComponent(q)}`);
+      const r = await fetch(`${API_BASE}/users/search?q=${encodeURIComponent(q)}`);
       const data = await r.json();
       setSearchRes(data.filter((u: FriendUser) => u.firebase_uid !== user?.uid));
     } catch {}
@@ -223,7 +212,7 @@ export default function ProfilePage() {
 
   async function acceptReq(fromUid: string) {
     if (!user) return;
-    await fetch(`http://localhost:8000/friends/${user.uid}/accept/${fromUid}`, { method: 'POST' }).catch(() => {});
+    await fetch(`${API_BASE}/friends/${user.uid}/accept/${fromUid}`, { method: 'POST' }).catch(() => {});
     const accepted = requests.find(r => r.firebase_uid === fromUid);
     setRequests(prev => prev.filter(r => r.firebase_uid !== fromUid));
     if (accepted) setFriends(prev => [...prev, accepted]);
@@ -231,13 +220,13 @@ export default function ProfilePage() {
 
   async function rejectReq(fromUid: string) {
     if (!user) return;
-    await fetch(`http://localhost:8000/friends/${user.uid}/${fromUid}`, { method: 'DELETE' }).catch(() => {});
+    await fetch(`${API_BASE}/friends/${user.uid}/${fromUid}`, { method: 'DELETE' }).catch(() => {});
     setRequests(prev => prev.filter(r => r.firebase_uid !== fromUid));
   }
 
   async function removeFriend(friendUid: string) {
     if (!user) return;
-    await fetch(`http://localhost:8000/friends/${user.uid}/${friendUid}`, { method: 'DELETE' }).catch(() => {});
+    await fetch(`${API_BASE}/friends/${user.uid}/${friendUid}`, { method: 'DELETE' }).catch(() => {});
     setFriends(prev => prev.filter(f => f.firebase_uid !== friendUid));
   }
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import FriendButton from './FriendButton';
+import { API_BASE } from '../lib/api';
 
 interface UserInfo { firebase_uid: string; name: string; email: string; photo_url: string | null }
 interface Likes    { tracks: any[]; movies: any[]; games: any[] }
@@ -20,8 +21,8 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
 
   useEffect(() => {
     Promise.all([
-      fetch(`http://localhost:8000/users/${uid}`).then(r => r.ok ? r.json() : null),
-      fetch(`http://localhost:8000/likes/${uid}`).then(r => r.json()),
+      fetch(`${API_BASE}/users/${uid}`).then(r => r.ok ? r.json() : null),
+      fetch(`${API_BASE}/likes/${uid}`).then(r => r.json()),
     ]).then(([u, l]) => {
       setUser(u);
       if (l) {

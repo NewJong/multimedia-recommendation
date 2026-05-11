@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { API_BASE } from '../lib/api';
 
 const CW = 158;   // card width
 const CH = 62;    // card height
@@ -43,9 +44,9 @@ export default function BounceScene() {
   // Fetch all three domains
   useEffect(() => {
     Promise.all([
-      fetch('http://localhost:8000/tracks').then(r => r.json()).catch(() => []),
-      fetch('http://localhost:8000/movies').then(r => r.json()).catch(() => []),
-      fetch('http://localhost:8000/games').then(r  => r.json()).catch(() => []),
+      fetch('${API_BASE}/tracks').then(r => r.json()).catch(() => []),
+      fetch('${API_BASE}/movies').then(r => r.json()).catch(() => []),
+      fetch('${API_BASE}/games').then(r  => r.json()).catch(() => []),
     ]).then(([tracks, movies, games]) => {
       const W  = boxRef.current?.clientWidth  ?? 1200;
       const H  = boxRef.current?.clientHeight ?? 650;

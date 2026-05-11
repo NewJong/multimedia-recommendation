@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import LikeButton from './LikeButton';
 import FriendsLiked from './FriendsLiked';
+import { API_BASE } from '../lib/api';
+import { fmtCompact, fmtDuration } from '../lib/format';
 
 interface Track {
   id: number; name: string; artist: string; album: string;
@@ -9,17 +11,6 @@ interface Track {
   summary: string; image_url: string; url: string;
 }
 
-function fmt(n: number) {
-  if (!n) return null;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `${Math.round(n / 1_000)}K`;
-  return n.toLocaleString();
-}
-function fmtDur(ms: number) {
-  if (!ms) return null;
-  const s = Math.floor(ms / 1000), m = Math.floor(s / 60);
-  return `${m}:${(s % 60).toString().padStart(2, '0')}`;
-}
 
 export default function TrackDetail({ id }: { id: number }) {
   const [track, setTrack]     = useState<Track | null>(null);
@@ -28,7 +19,7 @@ export default function TrackDetail({ id }: { id: number }) {
 
   useEffect(() => {
     const tid = id || Number(window.location.pathname.split('/').pop());
-    fetch(`http://localhost:8000/tracks/${tid}`)
+    fetch(`${API_BASE}/tracks/${tid}`)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(setTrack)
       .catch(() => setError(true))
@@ -87,9 +78,9 @@ export default function TrackDetail({ id }: { id: number }) {
             <p className="text-violet-300 text-xl font-medium mb-0.5">{track.artist}</p>
             {track.album && <p className="text-zinc-500 text-sm mb-5">{track.album}</p>}
             <div className="flex flex-wrap items-center gap-6">
-              {fmt(track.listeners) && <div><p className="text-white font-bold text-lg leading-none">{fmt(track.listeners)}</p><p className="text-zinc-500 text-xs mt-0.5">listeners</p></div>}
-              {fmt(track.playcount) && <div><p className="text-white font-bold text-lg leading-none">{fmt(track.playcount)}</p><p className="text-zinc-500 text-xs mt-0.5">scrobbles</p></div>}
-              {fmtDur(track.duration_ms) && <div><p className="text-white font-bold text-lg leading-none">{fmtDur(track.duration_ms)}</p><p className="text-zinc-500 text-xs mt-0.5">duration</p></div>}
+              {fmtCompact(track.listeners) && <div><p className="text-white font-bold text-lg leading-none">{fmtCompact(track.listeners)}</p><p className="text-zinc-500 text-xs mt-0.5">listeners</p></div>}
+              {fmtCompact(track.playcount) && <div><p className="text-white font-bold text-lg leading-none">{fmtCompact(track.playcount)}</p><p className="text-zinc-500 text-xs mt-0.5">scrobbles</p></div>}
+              {fmtDuration(track.duration_ms) && <div><p className="text-white font-bold text-lg leading-none">{fmtDuration(track.duration_ms)}</p><p className="text-zinc-500 text-xs mt-0.5">duration</p></div>}
               <LikeButton itemType="track" itemId={track.id} likedClass="text-violet-400" />
               <FriendsLiked itemType="track" itemId={track.id} ringColor="ring-violet-500/50" />
             </div>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { useAuth } from '../hooks/useAuth';
+import { API_BASE } from '../lib/api';
 
 interface Friend { firebase_uid: string; name: string; photo_url: string | null }
 
@@ -11,18 +11,16 @@ interface Props {
 }
 
 export default function FriendsLiked({ itemType, itemId, ringColor }: Props) {
+  const { uid } = useAuth();
   const [friends, setFriends] = useState<Friend[]>([]);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, user => {
-      if (!user) return;
-      fetch(`http://localhost:8000/likes/friends/${user.uid}/${itemType}/${itemId}`)
-        .then(r => r.json())
-        .then(d => setFriends(d ?? []))
-        .catch(() => {});
-    });
-    return unsub;
-  }, [itemType, itemId]);
+    if (!uid) return;
+    fetch(`${API_BASE}/likes/friends/${uid}/${itemType}/${itemId}`)
+      .then(r => r.json())
+      .then(d => setFriends(d ?? []))
+      .catch(() => {});
+  }, [uid, itemType, itemId]);
 
   if (friends.length === 0) return null;
 

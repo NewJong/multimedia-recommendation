@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE } from '../lib/api';
 
 interface Track { id: number; name: string; artist: string; genre: string; genres: string[]; image_url: string; listeners: number; }
 interface Movie { id: number; title: string; genre: string; genres: string[]; poster_url: string; rating: number; release_year: number; director: string; }
@@ -112,7 +113,7 @@ export default function SearchResults() {
     if (!q.trim()) { setResults(null); return; }
     setLoading(true);
     setAiError(null);
-    fetch('http://localhost:8000/search', {
+    fetch('${API_BASE}/search', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ q, ai: aiMode }),

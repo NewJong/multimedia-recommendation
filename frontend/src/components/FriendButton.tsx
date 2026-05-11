@@ -1,44 +1,39 @@
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { useAuth } from '../hooks/useAuth';
+import { API_BASE } from '../lib/api';
 
 type Status = 'loading' | 'none' | 'pending_sent' | 'pending_received' | 'friends';
 
 export default function FriendButton({ targetUid }: { targetUid: string }) {
-  const [myUid, setMyUid]     = useState<string | null>(null);
-  const [status, setStatus]   = useState<Status>('loading');
+  const { uid: myUid, loading } = useAuth();
+  const [status, setStatus] = useState<Status>('loading');
 
   useEffect(() => {
-    return onAuthStateChanged(auth, async user => {
-      if (!user) { setMyUid(null); setStatus('none'); return; }
-      setMyUid(user.uid);
-      if (user.uid === targetUid) { setStatus('loading'); return; }
-      try {
-        const r = await fetch(`http://localhost:8000/friends/${user.uid}/status/${targetUid}`);
-        const d = await r.json();
-        setStatus(d.status);
-      } catch {
-        setStatus('none');
-      }
-    });
-  }, [targetUid]);
+    if (loading) return;
+    if (!myUid) { setStatus('none'); return; }
+    if (myUid === targetUid) return;
+    fetch(`${API_BASE}/friends/${myUid}/status/${targetUid}`)
+      .then(r => r.json())
+      .then(d => setStatus(d.status))
+      .catch(() => setStatus('none'));
+  }, [loading, myUid, targetUid]);
 
   async function sendRequest() {
     if (!myUid) return;
     setStatus('pending_sent');
-    await fetch(`http://localhost:8000/friends/${myUid}/request/${targetUid}`, { method: 'POST' }).catch(() => {});
+    await fetch(`${API_BASE}/friends/${myUid}/request/${targetUid}`, { method: 'POST' }).catch(() => {});
   }
 
   async function accept() {
     if (!myUid) return;
     setStatus('friends');
-    await fetch(`http://localhost:8000/friends/${myUid}/accept/${targetUid}`, { method: 'POST' }).catch(() => {});
+    await fetch(`${API_BASE}/friends/${myUid}/accept/${targetUid}`, { method: 'POST' }).catch(() => {});
   }
 
   async function remove() {
     if (!myUid) return;
     setStatus('none');
-    await fetch(`http://localhost:8000/friends/${myUid}/${targetUid}`, { method: 'DELETE' }).catch(() => {});
+    await fetch(`${API_BASE}/friends/${myUid}/${targetUid}`, { method: 'DELETE' }).catch(() => {});
   }
 
   if (!myUid || myUid === targetUid || status === 'loading') return null;

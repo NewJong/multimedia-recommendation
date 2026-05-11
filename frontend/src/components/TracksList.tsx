@@ -1,6 +1,8 @@
 import { useMemo, useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '../lib/firebase';
+import { Heart } from 'lucide-react';
+import { useAuth } from '../hooks/useAuth';
+import { API_BASE } from '../lib/api';
+import { fmtCompact } from '../lib/format';
 
 interface Track {
   id: number;
@@ -18,12 +20,6 @@ interface Track {
   url: string;
 }
 
-function fmtNum(n: number) {
-  if (!n) return null;
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
-  return n.toLocaleString();
-}
 
 function GenreFilters({ genres, selected, onToggle, color }: {
   genres: string[];
@@ -56,16 +52,6 @@ function GenreFilters({ genres, selected, onToggle, color }: {
   );
 }
 
-const HeartFilled = ({ cls }: { cls: string }) => (
-  <svg className={cls} viewBox="0 0 24 24" fill="currentColor">
-    <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/>
-  </svg>
-);
-const HeartOutline = ({ cls }: { cls: string }) => (
-  <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
-    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
-  </svg>
-);
 
 function TrackCard({ t, index, liked, onToggle }: { t: Track; index: number; liked: boolean; onToggle?: (id: number) => void }) {
   const genres = t.genres.length > 0 ? t.genres : t.genre ? [t.genre] : [];
@@ -99,13 +85,13 @@ function TrackCard({ t, index, liked, onToggle }: { t: Track; index: number; lik
           onClick={e => { e.preventDefault(); e.stopPropagation(); onToggle(t.id); }}
           className="absolute top-2 right-2 z-10 p-1.5 rounded-full border border-zinc-700 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:border-violet-400"
         >
-          {liked ? <HeartFilled cls="w-4 h-4 text-violet-400" /> : <HeartOutline cls="w-4 h-4 text-zinc-300" />}
+          <Heart size={16} className={liked ? 'text-violet-400' : 'text-zinc-300'} fill={liked ? 'currentColor' : 'none'} />
         </button>
       )}
 
       <h3 className="text-white text-sm font-semibold leading-tight line-clamp-1 group-hover:text-violet-300 transition-colors">{t.name}</h3>
       <p className="text-zinc-400 text-xs mt-0.5 line-clamp-1">{t.artist}</p>
-      {fmtNum(t.listeners) && <p className="text-zinc-600 text-xs mt-0.5">{fmtNum(t.listeners)} listeners</p>}
+      {fmtCompact(t.listeners) && <p className="text-zinc-600 text-xs mt-0.5">{fmtCompact(t.listeners)} listeners</p>}
     </a>
   );
 }
@@ -126,7 +112,7 @@ export default function TracksList() {
   const [search, setSearch] = useState('');
   const [focused, setFocused] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
-  const [uid, setUid] = useState<string | null>(null);
+  const { uid } = useAuth();
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
   const [sortTab, setSortTab] = useState<SortTab>('popular');
   const [recs, setRecs] = useState<Track[]>([]);
@@ -134,7 +120,7 @@ export default function TracksList() {
   const [recsLoaded, setRecsLoaded] = useState(false);
 
   useEffect(() => {
-    fetch('http://localhost:8000/tracks')
+    fetch(`${API_BASE}/tracks`)
       .then(r => r.json())
       .then(setTracks)
       .catch(() => setError('Backend offline — run: uvicorn main:app --reload'))
@@ -142,25 +128,19 @@ export default function TracksList() {
   }, []);
 
   useEffect(() => {
-    return onAuthStateChanged(auth, user => {
-      setUid(user?.uid ?? null);
-      if (user) {
-        fetch(`http://localhost:8000/likes/${user.uid}`)
-          .then(r => r.json())
-          .then(d => setLikedIds(new Set((d.tracks ?? []).map((t: any) => t.id as number))))
-          .catch(() => {});
-      } else {
-        setLikedIds(new Set());
-      }
-    });
-  }, []);
+    if (!uid) { setLikedIds(new Set()); return; }
+    fetch(`${API_BASE}/likes/${uid}`)
+      .then(r => r.json())
+      .then(d => setLikedIds(new Set((d.tracks ?? []).map((t: any) => t.id as number))))
+      .catch(() => {});
+  }, [uid]);
 
   async function toggleLike(trackId: number) {
     if (!uid) return;
     const was = likedIds.has(trackId);
     setLikedIds(prev => { const n = new Set(prev); was ? n.delete(trackId) : n.add(trackId); return n; });
     try {
-      await fetch(`http://localhost:8000/likes/${uid}/track/${trackId}`, { method: 'POST' });
+      await fetch(`${API_BASE}/likes/${uid}/track/${trackId}`, { method: 'POST' });
     } catch {
       setLikedIds(prev => { const n = new Set(prev); was ? n.add(trackId) : n.delete(trackId); return n; });
     }
@@ -169,7 +149,7 @@ export default function TracksList() {
   useEffect(() => {
     if (sortTab !== 'foryou' || !uid || recsLoaded) return;
     setRecsLoading(true);
-    fetch(`http://localhost:8000/recommendations/${uid}/tracks`)
+    fetch(`${API_BASE}/recommendations/${uid}/tracks`)
       .then(r => r.json())
       .then(d => { setRecs(d); setRecsLoaded(true); })
       .catch(() => setRecsLoaded(true))

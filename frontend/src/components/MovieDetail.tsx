@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
 import LikeButton from './LikeButton';
 import FriendsLiked from './FriendsLiked';
+import { API_BASE } from '../lib/api';
+import { fmtRuntime, fmtMoney } from '../lib/format';
 
 interface Movie {
   id: number; title: string; genre: string; genres: string[]; keywords: string[];
@@ -11,17 +13,6 @@ interface Movie {
   budget: number; revenue: number; collection: string; tmdb_id: number;
 }
 
-function fmtRuntime(min: number) {
-  if (!min) return null;
-  const h = Math.floor(min / 60), m = min % 60;
-  return h > 0 ? `${h}h ${m}m` : `${m}m`;
-}
-function fmtMoney(n: number) {
-  if (!n || n === 0) return null;
-  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1)}B`;
-  if (n >= 1_000_000)     return `$${(n / 1_000_000).toFixed(0)}M`;
-  return `$${n.toLocaleString()}`;
-}
 
 export default function MovieDetail({ id }: { id: number }) {
   const [movie, setMovie]     = useState<Movie | null>(null);
@@ -29,7 +20,7 @@ export default function MovieDetail({ id }: { id: number }) {
   const [error, setError]     = useState(false);
 
   useEffect(() => {
-    fetch(`http://localhost:8000/movies/${id}`)
+    fetch(`${API_BASE}/movies/${id}`)
       .then(r => { if (!r.ok) throw new Error(); return r.json(); })
       .then(setMovie).catch(() => setError(true)).finally(() => setLoading(false));
   }, [id]);
