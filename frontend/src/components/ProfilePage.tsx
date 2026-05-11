@@ -241,32 +241,8 @@ export default function ProfilePage() {
     setFriends(prev => prev.filter(f => f.firebase_uid !== friendUid));
   }
 
-  const bgImages = (() => {
-    const raw = [
-      ...likes.tracks.map((t: any) => t.image_url),
-      ...likes.movies.map((m: any) => m.poster_url),
-      ...likes.games.map((g: any) => g.poster_url),
-    ].filter(Boolean);
-    if (raw.length === 0) return [];
-    return Array.from({ length: 9 }, (_, i) => raw[i % raw.length]);
-  })();
-
   return (
-    <div className="relative min-h-[calc(100vh-3.5rem)] overflow-hidden">
-
-      {/* Blurred collage background */}
-      {bgImages.length > 0 && (
-        <div
-          className="absolute inset-0 pointer-events-none grid grid-cols-3 grid-rows-3"
-          style={{ filter: 'blur(72px) brightness(0.18) saturate(2)', transform: 'scale(1.2)', transformOrigin: 'center' }}
-        >
-          {bgImages.map((src, i) => (
-            <img key={i} src={src} alt="" className="w-full h-full object-cover" />
-          ))}
-        </div>
-      )}
-
-    <div className="relative z-10 max-w-4xl mx-auto px-6 pt-8 pb-16">
+    <div className="max-w-4xl mx-auto px-6 pt-8 pb-16">
 
       {/* User header — centered */}
       <div className="flex flex-col items-center text-center mb-8">
@@ -441,7 +417,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-    </div>
     </div>
   );
 }
