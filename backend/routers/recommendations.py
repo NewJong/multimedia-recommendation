@@ -1,20 +1,9 @@
-import math
+import numpy as np
+from sklearn.metrics.pairwise import cosine_similarity
 from fastapi import APIRouter
-from database import get_conn, cached_query, serialize_rows
+from database import get_conn, cached_query
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
-
-
-def _cosine(user_vec: dict[str, float], item_tags: list[str]) -> float:
-    if not user_vec or not item_tags:
-        return 0.0
-    item_vec = {t.lower(): 1.0 for t in item_tags}
-    dot     = sum(user_vec.get(k, 0.0) * v for k, v in item_vec.items())
-    mag_u   = math.sqrt(sum(v * v for v in user_vec.values()))
-    mag_i   = math.sqrt(sum(v * v for v in item_vec.values()))
-    if mag_u == 0 or mag_i == 0:
-        return 0.0
-    return dot / (mag_u * mag_i)
 
 
 def _build_recommendations(uid: str, item_type: str, items: list, tag_fields: list) -> list:
@@ -29,32 +18,49 @@ def _build_recommendations(uid: str, item_type: str, items: list, tag_fields: li
     if not liked_ids:
         return []
 
-    # Build user taste vector: {tag: how_many_liked_items_have_it}
-    liked_items = [item for item in items if item["id"] in liked_ids]
-    user_vec: dict[str, float] = {}
-    for item in liked_items:
+    # Build vocabulary from all items
+    vocab: dict[str, int] = {}
+    for item in items:
         for field in tag_fields:
             for tag in (item.get(field) or []):
                 key = tag.lower()
-                user_vec[key] = user_vec.get(key, 0.0) + 1.0
+                if key not in vocab:
+                    vocab[key] = len(vocab)
 
-    if not user_vec:
+    if not vocab:
         return []
 
-    # Score every un-liked item with cosine similarity
-    scored = []
-    for item in items:
-        if item["id"] in liked_ids:
-            continue
-        item_tags = []
-        for field in tag_fields:
-            item_tags.extend(item.get(field) or [])
-        score = _cosine(user_vec, item_tags)
-        if score > 0:
-            scored.append((score, item))
+    n = len(vocab)
 
-    scored.sort(key=lambda x: -x[0])
-    return [item for _, item in scored[:24]]
+    # User vector: sum of liked items' tag vectors (weighted by frequency)
+    user_vec = np.zeros(n)
+    for item in items:
+        if item["id"] not in liked_ids:
+            continue
+        for field in tag_fields:
+            for tag in (item.get(field) or []):
+                user_vec[vocab[tag.lower()]] += 1.0
+
+    if not user_vec.any():
+        return []
+
+    # Item matrix: one row per un-liked item
+    candidates = [item for item in items if item["id"] not in liked_ids]
+    if not candidates:
+        return []
+
+    item_matrix = np.zeros((len(candidates), n))
+    for i, item in enumerate(candidates):
+        for field in tag_fields:
+            for tag in (item.get(field) or []):
+                item_matrix[i, vocab[tag.lower()]] = 1.0
+
+    # Cosine similarity between user vector and all candidate items
+    scores = cosine_similarity(user_vec.reshape(1, -1), item_matrix)[0]
+
+    # Sort by score descending, return top 24
+    top_indices = np.argsort(scores)[::-1]
+    return [candidates[i] for i in top_indices if scores[i] > 0][:24]
 
 
 @router.get("/{uid}/tracks")
