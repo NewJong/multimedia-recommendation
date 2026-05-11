@@ -125,6 +125,14 @@ function MovieCard({ m, index, liked, onToggle }: { m: Movie; index: number; lik
   );
 }
 
+type SortTab = 'popular' | 'toprated' | 'new' | 'foryou';
+const SORT_TABS: { key: SortTab; label: string }[] = [
+  { key: 'popular',  label: 'Popular' },
+  { key: 'toprated', label: 'Top Rated' },
+  { key: 'new',      label: 'New' },
+  { key: 'foryou',   label: '✦ For You' },
+];
+
 export default function MoviesList() {
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -134,6 +142,10 @@ export default function MoviesList() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [uid, setUid] = useState<string | null>(null);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const [sortTab, setSortTab] = useState<SortTab>('popular');
+  const [recs, setRecs] = useState<Movie[]>([]);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsLoaded, setRecsLoaded] = useState(false);
 
   useEffect(() => {
     fetch('http://localhost:8000/movies')
@@ -168,6 +180,16 @@ export default function MoviesList() {
     }
   }
 
+  useEffect(() => {
+    if (sortTab !== 'foryou' || !uid || recsLoaded) return;
+    setRecsLoading(true);
+    fetch(`http://localhost:8000/recommendations/${uid}/movies`)
+      .then(r => r.json())
+      .then(d => { setRecs(d); setRecsLoaded(true); })
+      .catch(() => setRecsLoaded(true))
+      .finally(() => setRecsLoading(false));
+  }, [sortTab, uid, recsLoaded]);
+
   const allGenres = useMemo(() => {
     const set = new Set<string>();
     movies.forEach(m => m.genres.forEach(g => set.add(g)));
@@ -192,6 +214,12 @@ export default function MoviesList() {
     return matchSearch && matchGenre;
   });
 
+  const sorted = useMemo(() => {
+    if (sortTab === 'toprated') return [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    if (sortTab === 'new')      return [...filtered].sort((a, b) => (b.release_year || 0) - (a.release_year || 0));
+    return [...filtered].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
+  }, [filtered, sortTab]);
+
   if (loading) return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {Array.from({ length: 15 }).map((_, i) => (
@@ -210,39 +238,72 @@ export default function MoviesList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-zinc-500 text-sm">
-          {filtered.length < movies.length
-            ? <><span className="text-white font-medium">{filtered.length}</span> of {movies.length}</>
-            : <>{movies.length} movies</>}
-        </p>
-        <input
-          type="text"
-          placeholder="Search…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-rose-500 w-56 transition-all duration-300"
-          style={{ boxShadow: focused ? '0 0 0 3px rgba(244,63,94,0.15)' : 'none' }}
-        />
-      </div>
-
-      <GenreFilters
-        genres={allGenres}
-        selected={selectedGenres}
-        onToggle={toggleGenre}
-        color={{
-          active: 'bg-rose-500 border-rose-500 text-white',
-          pill: 'border-zinc-700 text-zinc-400 hover:border-rose-600 hover:text-rose-300',
-        }}
-      />
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {filtered.map((m, i) => (
-          <MovieCard key={m.id} m={m} index={i} liked={likedIds.has(m.id)} onToggle={uid ? toggleLike : undefined} />
+      <div className="flex items-center gap-1 mb-5 border-b border-zinc-800/60 pb-1">
+        {SORT_TABS.map(tab => (
+          <button key={tab.key} onClick={() => setSortTab(tab.key)}
+            className={`relative px-3 py-1.5 rounded-t-lg text-sm font-medium transition-all duration-200 ${sortTab === tab.key ? 'text-rose-300' : 'text-zinc-500 hover:text-zinc-300'}`}>
+            {tab.label}
+            {sortTab === tab.key && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-400 rounded-full" />}
+          </button>
         ))}
       </div>
+
+      {sortTab !== 'foryou' && (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-zinc-500 text-sm">
+              {sorted.length < movies.length
+                ? <><span className="text-white font-medium">{sorted.length}</span> of {movies.length}</>
+                : <>{movies.length} movies</>}
+            </p>
+            <input type="text" placeholder="Search…" value={search}
+              onChange={e => setSearch(e.target.value)}
+              onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+              className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-rose-500 w-56 transition-all duration-300"
+              style={{ boxShadow: focused ? '0 0 0 3px rgba(244,63,94,0.15)' : 'none' }}
+            />
+          </div>
+          <GenreFilters genres={allGenres} selected={selectedGenres} onToggle={toggleGenre}
+            color={{ active: 'bg-rose-500 border-rose-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-rose-600 hover:text-rose-300' }}
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {sorted.map((m, i) => (
+              <MovieCard key={m.id} m={m} index={i} liked={likedIds.has(m.id)} onToggle={uid ? toggleLike : undefined} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {sortTab === 'foryou' && (
+        <div>
+          {!uid && <div className="py-20 text-center"><p className="text-zinc-500 text-sm">Sign in to get personalized recommendations</p></div>}
+          {uid && recsLoading && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-[2/3] rounded-xl bg-zinc-900 mb-2.5" />
+                  <div className="h-3 bg-zinc-900 rounded w-3/4 mb-1.5" />
+                  <div className="h-2.5 bg-zinc-900 rounded w-1/3" />
+                </div>
+              ))}
+            </div>
+          )}
+          {uid && !recsLoading && recs.length === 0 && (
+            <div className="py-20 text-center">
+              <p className="text-zinc-400 text-sm mb-1">Like some movies to get recommendations</p>
+              <p className="text-zinc-600 text-xs">The more you like — the better the results</p>
+            </div>
+          )}
+          {uid && !recsLoading && recs.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {recs.map((m, i) => (
+                <MovieCard key={m.id} m={m} index={i} liked={likedIds.has(m.id)} onToggle={uid ? toggleLike : undefined} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
     </div>
   );
 }

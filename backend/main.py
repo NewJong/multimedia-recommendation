@@ -4,7 +4,7 @@ load_dotenv(Path(__file__).parent / ".env")
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routers import content, users, likes, friends, search
+from routers import content, users, likes, friends, search, recommendations
 
 app = FastAPI(title="TIOKhor API")
 
@@ -26,3 +26,4 @@ app.include_router(users.router)
 app.include_router(likes.router)
 app.include_router(friends.router)
 app.include_router(search.router)
+app.include_router(recommendations.router)

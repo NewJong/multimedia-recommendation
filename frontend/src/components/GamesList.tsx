@@ -140,6 +140,14 @@ function GameCard({ g, index, liked, onToggle }: { g: Game; index: number; liked
   );
 }
 
+type SortTab = 'popular' | 'toprated' | 'new' | 'foryou';
+const SORT_TABS: { key: SortTab; label: string }[] = [
+  { key: 'popular',  label: 'Popular' },
+  { key: 'toprated', label: 'Top Rated' },
+  { key: 'new',      label: 'New' },
+  { key: 'foryou',   label: '✦ For You' },
+];
+
 export default function GamesList() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
@@ -149,6 +157,10 @@ export default function GamesList() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [uid, setUid] = useState<string | null>(null);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const [sortTab, setSortTab] = useState<SortTab>('popular');
+  const [recs, setRecs] = useState<Game[]>([]);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsLoaded, setRecsLoaded] = useState(false);
 
   useEffect(() => {
     fetch('http://localhost:8000/games')
@@ -183,6 +195,16 @@ export default function GamesList() {
     }
   }
 
+  useEffect(() => {
+    if (sortTab !== 'foryou' || !uid || recsLoaded) return;
+    setRecsLoading(true);
+    fetch(`http://localhost:8000/recommendations/${uid}/games`)
+      .then(r => r.json())
+      .then(d => { setRecs(d); setRecsLoaded(true); })
+      .catch(() => setRecsLoaded(true))
+      .finally(() => setRecsLoading(false));
+  }, [sortTab, uid, recsLoaded]);
+
   const allGenres = useMemo(() => {
     const set = new Set<string>();
     games.forEach(g => g.genres.forEach(genre => set.add(genre)));
@@ -208,6 +230,12 @@ export default function GamesList() {
     return matchSearch && matchGenre;
   });
 
+  const sorted = useMemo(() => {
+    if (sortTab === 'toprated') return [...filtered].sort((a, b) => (b.metacritic || 0) - (a.metacritic || 0));
+    if (sortTab === 'new')      return [...filtered].sort((a, b) => (b.release_year || 0) - (a.release_year || 0));
+    return [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  }, [filtered, sortTab]);
+
   if (loading) return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {Array.from({ length: 12 }).map((_, i) => (
@@ -226,39 +254,71 @@ export default function GamesList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-zinc-500 text-sm">
-          {filtered.length < games.length
-            ? <><span className="text-white font-medium">{filtered.length}</span> of {games.length}</>
-            : <>{games.length} games</>}
-        </p>
-        <input
-          type="text"
-          placeholder="Search…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500 w-56 transition-all duration-300"
-          style={{ boxShadow: focused ? '0 0 0 3px rgba(16,185,129,0.15)' : 'none' }}
-        />
-      </div>
-
-      <GenreFilters
-        genres={allGenres}
-        selected={selectedGenres}
-        onToggle={toggleGenre}
-        color={{
-          active: 'bg-emerald-500 border-emerald-500 text-white',
-          pill: 'border-zinc-700 text-zinc-400 hover:border-emerald-600 hover:text-emerald-300',
-        }}
-      />
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filtered.map((g, i) => (
-          <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined} />
+      <div className="flex items-center gap-1 mb-5 border-b border-zinc-800/60 pb-1">
+        {SORT_TABS.map(tab => (
+          <button key={tab.key} onClick={() => setSortTab(tab.key)}
+            className={`relative px-3 py-1.5 rounded-t-lg text-sm font-medium transition-all duration-200 ${sortTab === tab.key ? 'text-emerald-300' : 'text-zinc-500 hover:text-zinc-300'}`}>
+            {tab.label}
+            {sortTab === tab.key && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-400 rounded-full" />}
+          </button>
         ))}
       </div>
+
+      {sortTab !== 'foryou' && (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-zinc-500 text-sm">
+              {sorted.length < games.length
+                ? <><span className="text-white font-medium">{sorted.length}</span> of {games.length}</>
+                : <>{games.length} games</>}
+            </p>
+            <input type="text" placeholder="Search…" value={search}
+              onChange={e => setSearch(e.target.value)}
+              onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+              className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-emerald-500 w-56 transition-all duration-300"
+              style={{ boxShadow: focused ? '0 0 0 3px rgba(16,185,129,0.15)' : 'none' }}
+            />
+          </div>
+          <GenreFilters genres={allGenres} selected={selectedGenres} onToggle={toggleGenre}
+            color={{ active: 'bg-emerald-500 border-emerald-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-emerald-600 hover:text-emerald-300' }}
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {sorted.map((g, i) => (
+              <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {sortTab === 'foryou' && (
+        <div>
+          {!uid && <div className="py-20 text-center"><p className="text-zinc-500 text-sm">Sign in to get personalized recommendations</p></div>}
+          {uid && recsLoading && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-video rounded-xl bg-zinc-900 mb-2.5" />
+                  <div className="h-3 bg-zinc-900 rounded w-3/4 mb-1.5" />
+                  <div className="h-2.5 bg-zinc-900 rounded w-1/3" />
+                </div>
+              ))}
+            </div>
+          )}
+          {uid && !recsLoading && recs.length === 0 && (
+            <div className="py-20 text-center">
+              <p className="text-zinc-400 text-sm mb-1">Like some games to get recommendations</p>
+              <p className="text-zinc-600 text-xs">The more you like — the better the results</p>
+            </div>
+          )}
+          {uid && !recsLoading && recs.length > 0 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {recs.map((g, i) => (
+                <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

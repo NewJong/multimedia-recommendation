@@ -110,6 +110,15 @@ function TrackCard({ t, index, liked, onToggle }: { t: Track; index: number; lik
   );
 }
 
+type SortTab = 'popular' | 'trending' | 'new' | 'foryou';
+
+const SORT_TABS: { key: SortTab; label: string }[] = [
+  { key: 'popular',  label: 'Popular' },
+  { key: 'trending', label: 'Trending' },
+  { key: 'new',      label: 'New' },
+  { key: 'foryou',   label: '✦ For You' },
+];
+
 export default function TracksList() {
   const [tracks, setTracks] = useState<Track[]>([]);
   const [loading, setLoading] = useState(true);
@@ -119,6 +128,10 @@ export default function TracksList() {
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const [uid, setUid] = useState<string | null>(null);
   const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const [sortTab, setSortTab] = useState<SortTab>('popular');
+  const [recs, setRecs] = useState<Track[]>([]);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [recsLoaded, setRecsLoaded] = useState(false);
 
   useEffect(() => {
     fetch('http://localhost:8000/tracks')
@@ -153,6 +166,16 @@ export default function TracksList() {
     }
   }
 
+  useEffect(() => {
+    if (sortTab !== 'foryou' || !uid || recsLoaded) return;
+    setRecsLoading(true);
+    fetch(`http://localhost:8000/recommendations/${uid}/tracks`)
+      .then(r => r.json())
+      .then(d => { setRecs(d); setRecsLoaded(true); })
+      .catch(() => setRecsLoaded(true))
+      .finally(() => setRecsLoading(false));
+  }, [sortTab, uid, recsLoaded]);
+
   const allGenres = useMemo(() => {
     const set = new Set<string>();
     tracks.forEach(t => {
@@ -180,6 +203,12 @@ export default function TracksList() {
     return matchSearch && matchGenre;
   });
 
+  const sorted = useMemo(() => {
+    if (sortTab === 'trending') return [...filtered].sort((a, b) => (b.playcount || 0) - (a.playcount || 0));
+    if (sortTab === 'new')      return [...filtered].sort((a, b) => b.id - a.id);
+    return [...filtered].sort((a, b) => (b.listeners || 0) - (a.listeners || 0));
+  }, [filtered, sortTab]);
+
   if (loading) return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
       {Array.from({ length: 15 }).map((_, i) => (
@@ -199,39 +228,86 @@ export default function TracksList() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-zinc-500 text-sm">
-          {filtered.length < tracks.length
-            ? <><span className="text-white font-medium">{filtered.length}</span> of {tracks.length}</>
-            : <>{tracks.length} tracks</>}
-        </p>
-        <input
-          type="text"
-          placeholder="Search…"
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500 w-56 transition-all duration-300"
-          style={{ boxShadow: focused ? '0 0 0 3px rgba(139,92,246,0.15)' : 'none' }}
-        />
-      </div>
-
-      <GenreFilters
-        genres={allGenres}
-        selected={selectedGenres}
-        onToggle={toggleGenre}
-        color={{
-          active: 'bg-violet-500 border-violet-500 text-white',
-          pill: 'border-zinc-700 text-zinc-400 hover:border-violet-600 hover:text-violet-300',
-        }}
-      />
-
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-        {filtered.map((t, i) => (
-          <TrackCard key={t.id} t={t} index={i} liked={likedIds.has(t.id)} onToggle={uid ? toggleLike : undefined} />
+      {/* Sort tabs */}
+      <div className="flex items-center gap-1 mb-5 border-b border-zinc-800/60 pb-1">
+        {SORT_TABS.map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setSortTab(tab.key)}
+            className={`relative px-3 py-1.5 rounded-t-lg text-sm font-medium transition-all duration-200 ${
+              sortTab === tab.key
+                ? 'text-violet-300'
+                : 'text-zinc-500 hover:text-zinc-300'
+            }`}
+          >
+            {tab.label}
+            {sortTab === tab.key && (
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-violet-400 rounded-full" />
+            )}
+          </button>
         ))}
       </div>
+
+      {sortTab !== 'foryou' && (
+        <>
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-zinc-500 text-sm">
+              {sorted.length < tracks.length
+                ? <><span className="text-white font-medium">{sorted.length}</span> of {tracks.length}</>
+                : <>{tracks.length} tracks</>}
+            </p>
+            <input
+              type="text" placeholder="Search…" value={search}
+              onChange={e => setSearch(e.target.value)}
+              onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+              className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500 w-56 transition-all duration-300"
+              style={{ boxShadow: focused ? '0 0 0 3px rgba(139,92,246,0.15)' : 'none' }}
+            />
+          </div>
+          <GenreFilters genres={allGenres} selected={selectedGenres} onToggle={toggleGenre}
+            color={{ active: 'bg-violet-500 border-violet-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-violet-600 hover:text-violet-300' }}
+          />
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            {sorted.map((t, i) => (
+              <TrackCard key={t.id} t={t} index={i} liked={likedIds.has(t.id)} onToggle={uid ? toggleLike : undefined} />
+            ))}
+          </div>
+        </>
+      )}
+
+      {sortTab === 'foryou' && (
+        <div>
+          {!uid && (
+            <div className="py-20 text-center">
+              <p className="text-zinc-500 text-sm">Sign in to get personalized recommendations</p>
+            </div>
+          )}
+          {uid && recsLoading && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {Array.from({ length: 10 }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="aspect-square rounded-xl bg-zinc-900 mb-2.5" />
+                  <div className="h-3 bg-zinc-900 rounded w-3/4 mb-1.5" />
+                  <div className="h-2.5 bg-zinc-900 rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          )}
+          {uid && !recsLoading && recs.length === 0 && (
+            <div className="py-20 text-center">
+              <p className="text-zinc-400 text-sm mb-1">Like some tracks to get recommendations</p>
+              <p className="text-zinc-600 text-xs">The more you like — the better the results</p>
+            </div>
+          )}
+          {uid && !recsLoading && recs.length > 0 && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {recs.map((t, i) => (
+                <TrackCard key={t.id} t={t} index={i} liked={likedIds.has(t.id)} onToggle={uid ? toggleLike : undefined} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
