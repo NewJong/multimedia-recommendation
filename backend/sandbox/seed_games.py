@@ -198,7 +198,7 @@ def fetch_game(rawg_id):
     genre  = resolve_genre(genres)
 
     raw_tags = [t["name"] for t in d.get("tags", []) if t.get("language") == "eng"]
-    tags = [t for t in raw_tags if t.lower() not in NOISE_TAGS][:12]
+    tags = [t for t in raw_tags if t.lower() not in NOISE_TAGS]  # no hard cap — normalize_games handles noise
 
     platforms = list({p["platform"]["name"] for p in d.get("platforms") or []})
     devs = [x["name"] for x in d.get("developers") or []]

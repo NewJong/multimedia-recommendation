@@ -19,31 +19,72 @@ DB_URL = os.getenv("DATABASE_URL")
 REMOVE = {
     # platform / store status
     "early access", "steam achievements", "steam cloud", "steam trading cards",
-    "steam leaderboards", "steam workshop", "full controller support",
+    "steam-trading-cards", "steam leaderboards", "steam workshop",
+    "full controller support", "partial controller support", "controller support",
     "includes level editor", "commentary available",
     "valve anti-cheat enabled", "in-app purchases", "free to play",
-    # ESRB ratings that leak into tags
-    "mature", "teen", "everyone", "everyone 10+", "adults only", "rating pending",
-    # technical feature flags (not about what kind of game it is)
-    "moddable", "mod support",
-    # hardware / platform features
-    "controller", "vr",
+    # platform exclusivity (not a taste signal)
+    "exclusive", "true exclusive", "w10 exclusive", "xbox exclusive",
+    "pc exclusive", "console exclusive",
+    # remote play / streaming features
+    "remote play on tablet", "remote play on phone", "remote play on tv",
+    "remote play together",
     # multiplayer mode tags — features, not taste
     "pvp", "pve", "online pvp", "online multiplayer", "local multiplayer",
     "cross-platform multiplayer", "split screen", "multiplayer",
+    "shared/split screen co-op", "shared/split screen pvp",
+    "4 player local", "lan co-op", "co-op campaign", "co-op multiplayer",
+    "co op multiplayer", "family sharing",
+    # platform utilities (not taste)
+    "overlay", "cloud saves", "achievements", "captions available",
+    "vr supported", "trackir", "3d vision",
+    "online", "offline", "console",
+    # ESRB ratings that leak into tags
+    "mature", "teen", "everyone", "everyone 10+", "adults only", "rating pending",
+    # hardware / platform features
+    "controller", "vr", "mouse only",
     # content descriptors (ESRB-adjacent — not about taste)
     "gore", "violent", "violence", "blood", "nudity", "sexual content",
+    # business model noise
+    "lootboxes", "microtransactions", "ea play", "in development",
+    "skins", "loot",
+    # meme/internet culture tags
+    "memes", "illuminati",
     # subjective / review metrics
     "masterpiece", "emotional", "relaxing", "replay value",
+    "experience", "atmosphere", "immersive",
     # structural / duration descriptors
     "short", "remake", "story",
     # pure sentiment / noise
-    "classic", "great soundtrack", "stats",
+    "classic", "great soundtrack", "stats", "beautiful",
     # too generic — appears in 60%+ of games, kills signal
     "atmospheric",
-    # single-word noise tags (mostly 1–2 occurrences, no taste signal)
+    # single-word garbage (mostly 1–2 occurrences, no taste signal)
     "battle", "friends", "night", "ship", "cats", "hero", "island",
     "city", "prison", "1-bit", "japanese", "combat",
+    # RAWG junk tags (game-specific nonsense, foreign)
+    "karaihb", "controversial", "first person mod",
+    "tir", "mac-plus", "dinn", "obra",
+    "celeste", "xna", "fna", "miniboss", "towerfall", "matt-makes-games",
+    "great-graphics", "character-development",
+    "steam", "meat", "category",
+    "build", "life", "race", "character", "work", "love", "light",
+    "learn", "obstacles", "delivery", "journey", "treasure", "collect",
+    "food", "water", "sea", "sun", "crash", "health", "alien",
+    "fight", "nature", "weapons", "planets", "galaxy", "sky",
+    "guns", "trees", "wasteland", "solo", "team",
+    "interactive movie", "interactive game",
+    "planetary", "philisophical",
+    "modding", "cube", "procedural-generation",
+    "explore", "simple", "modern",
+    "lifestyle", "reality-based", "family-simulator",
+    "overlay", "achievements",
+    "1980s",  # decade tag in GTA Vice City
+    "ww2", "history",  # too generic (Historical tag already covers it)
+    "mmo",  # lowercase — handled in MERGE below
+    "dungeons", "epic",
+    "arena", "tv", "map", "hd", "gaming", "balance", "endless",
+    "weapons", "skill", "online", "offline",
 }
 
 # Synonyms: any key → canonical value (title-cased)
@@ -69,11 +110,22 @@ MERGE = {
     # fps — merge into First-Person (RDR2 has both FPS and First-Person as duplicates)
     "fps":                "First-Person",
     "first-person shooter": "First-Person",
-    # perspective duplicate
+    # perspective duplicates
     "3rd-person perspective": "Third-Person",
+    "3rd-person":            "Third-Person",
     # weak variants → stronger canonical
     "puzzles":               "Puzzle",
     "story":                 "Story Rich",
+    # lowercase / variant → canonical
+    "mmo":                   "MMO",
+    "action rts":            "RTS",
+    "role playing game":     "RPG",
+    "looter shooter":        "Shooter",
+    "hero shooter":          "Shooter",
+    "arena shooter":         "Shooter",
+    "2d fighter":            "Fighting",
+    "immersive sim":         "Simulation",
+
     # rpg
     "role-playing":       "RPG",
     "role playing":       "RPG",
@@ -88,9 +140,14 @@ MERGE = {
 }
 
 
+import re as _re
+
 def normalise_tag(tag: str) -> str | None:
     low = tag.lower().strip()
     if low in REMOVE:
+        return None
+    # drop tags that contain non-ASCII letters (foreign language tags)
+    if _re.search(r'[^\x00-\x7F]', tag):
         return None
     canonical = MERGE.get(low)
     if canonical:
