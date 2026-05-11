@@ -62,6 +62,25 @@ REMOVE = {
     # single-word garbage (mostly 1–2 occurrences, no taste signal)
     "battle", "friends", "night", "ship", "cats", "hero", "island",
     "city", "prison", "1-bit", "japanese", "combat",
+    # character / franchise names (not cross-game taste signals)
+    "batman", "lara croft", "assassin",
+    # social / identity tags
+    "lgbtq+",
+    # location noise (games)
+    "new york", "russia", "mexico", "forest",
+    # technical rendering terms
+    "voxel", "photorealistic", "photorealism", "3d vision",
+    # too-generic single words
+    "science", "mod", "politics", "conversation", "destruction",
+    "kickstarter",
+    # duplicate / malformed
+    "coop",           # duplicate of Co-op
+    "cartoon",        # duplicate of Cartoony
+    "tank",           # duplicate of Tanks
+    "paranormal",     # duplicate of Supernatural — deduped via MERGE below
+    # racing lowercase noise
+    "street racing", "cars", "drift", "racing-game",
+    "festival", "sprint", "winter", "autumn", "extreme", "photorealism",
     # RAWG junk tags (game-specific nonsense, foreign)
     "karaihb", "controversial", "first person mod",
     "tir", "mac-plus", "dinn", "obra",
@@ -79,12 +98,13 @@ REMOVE = {
     "explore", "simple", "modern",
     "lifestyle", "reality-based", "family-simulator",
     "overlay", "achievements",
-    "1980s",  # decade tag in GTA Vice City
-    "ww2", "history",  # too generic (Historical tag already covers it)
+    "1980s",
+    "ww2", "history",
     "mmo",  # lowercase — handled in MERGE below
     "dungeons", "epic",
     "arena", "tv", "map", "hd", "gaming", "balance", "endless",
-    "weapons", "skill", "online", "offline",
+    "skill", "online", "offline", "evil",
+    "grappling-hook", "collectathon",
 }
 
 # Synonyms: any key → canonical value (title-cased)
@@ -118,6 +138,9 @@ MERGE = {
     "story":                 "Story Rich",
     # lowercase / variant → canonical
     "mmo":                   "MMO",
+    "realism":               "Realistic",
+    "paranormal":            "Supernatural",
+    "nonlinear":             "Non-linear",
     "action rts":            "RTS",
     "role playing game":     "RPG",
     "looter shooter":        "Shooter",
