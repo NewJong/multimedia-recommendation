@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import LikeButton from './LikeButton';
+import FriendsLiked from './FriendsLiked';
 
 interface Game {
   id: number; title: string; genre: string; genres: string[]; tags: string[];
@@ -98,6 +99,7 @@ export default function GameDetail({ id }: { id: number }) {
               )}
               <LikeButton itemType="game" itemId={game.id} likedClass="text-emerald-400" />
             </div>
+            <FriendsLiked itemType="game" itemId={game.id} ringColor="ring-emerald-500/40" />
           </div>
         </div>
 

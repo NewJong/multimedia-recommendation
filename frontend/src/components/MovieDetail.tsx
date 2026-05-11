@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import LikeButton from './LikeButton';
+import FriendsLiked from './FriendsLiked';
 
 interface Movie {
   id: number; title: string; genre: string; genres: string[]; keywords: string[];
@@ -108,6 +109,7 @@ export default function MovieDetail({ id }: { id: number }) {
               )}
               <LikeButton itemType="movie" itemId={movie.id} likedClass="text-rose-400" />
             </div>
+            <FriendsLiked itemType="movie" itemId={movie.id} ringColor="ring-rose-500/40" />
 
             {/* Crew */}
             {movie.director && (

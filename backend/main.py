@@ -407,6 +407,26 @@ async def search(body: SearchBody):
     }
 
 
+@app.get("/likes/friends/{uid}/{item_type}/{item_id}")
+def friends_who_liked(uid: str, item_type: str, item_id: int):
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("""
+        SELECT u.firebase_uid, u.name, u.photo_url
+        FROM likes l
+        JOIN users u ON l.user_uid = u.firebase_uid
+        WHERE l.item_type = %s AND l.item_id = %s
+          AND l.user_uid IN (
+              SELECT CASE WHEN from_uid = %s THEN to_uid ELSE from_uid END
+              FROM friend_requests
+              WHERE (from_uid = %s OR to_uid = %s) AND status = 'accepted'
+          )
+        LIMIT 8
+    """, (item_type, item_id, uid, uid, uid))
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close(); conn.close()
+    return rows
+
+
 @app.get("/likes/{uid}/{item_type}/{item_id}")
 def check_like(uid: str, item_type: str, item_id: int):
     conn = get_conn(); cur = conn.cursor()

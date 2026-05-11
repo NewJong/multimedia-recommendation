@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import LikeButton from './LikeButton';
+import FriendsLiked from './FriendsLiked';
 
 interface Track {
   id: number; name: string; artist: string; album: string;
@@ -91,6 +92,7 @@ export default function TrackDetail({ id }: { id: number }) {
               {fmtDur(track.duration_ms) && <div><p className="text-white font-bold text-lg leading-none">{fmtDur(track.duration_ms)}</p><p className="text-zinc-500 text-xs mt-0.5">duration</p></div>}
               <LikeButton itemType="track" itemId={track.id} likedClass="text-violet-400" />
             </div>
+            <FriendsLiked itemType="track" itemId={track.id} ringColor="ring-violet-500/40" />
           </div>
         </div>
 
