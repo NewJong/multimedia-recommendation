@@ -1,0 +1,237 @@
+import { useMemo, useEffect, useState } from 'react';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../lib/firebase';
+
+interface Track {
+  id: number;
+  name: string;
+  genre: string;
+  genres: string[];
+  tags: string[];
+  artist: string;
+  album: string;
+  duration_ms: number;
+  listeners: number;
+  playcount: number;
+  summary: string;
+  image_url: string;
+  url: string;
+}
+
+function fmtNum(n: number) {
+  if (!n) return null;
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}K`;
+  return n.toLocaleString();
+}
+
+function GenreFilters({ genres, selected, onToggle, color }: {
+  genres: string[];
+  selected: string[];
+  onToggle: (g: string) => void;
+  color: { active: string; pill: string };
+}) {
+  return (
+    <div className="flex flex-wrap gap-2 mb-6">
+      <button
+        onClick={() => selected.forEach(g => onToggle(g))}
+        className={`px-3 py-1 rounded-full text-xs font-medium border transition-all duration-150 ${
+          selected.length === 0 ? color.active : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'
+        }`}
+      >
+        All
+      </button>
+      {genres.map(g => (
+        <button
+          key={g}
+          onClick={() => onToggle(g)}
+          className={`px-3 py-1 rounded-full text-xs font-medium border transition-all duration-150 ${
+            selected.includes(g) ? color.active : color.pill
+          }`}
+        >
+          {g}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+const HeartFilled = ({ cls }: { cls: string }) => (
+  <svg className={cls} viewBox="0 0 24 24" fill="currentColor">
+    <path d="M11.645 20.91l-.007-.003-.022-.012a15.247 15.247 0 01-.383-.218 25.18 25.18 0 01-4.244-3.17C4.688 15.36 2.25 12.174 2.25 8.25 2.25 5.322 4.714 3 7.688 3A5.5 5.5 0 0112 5.052 5.5 5.5 0 0116.313 3c2.973 0 5.437 2.322 5.437 5.25 0 3.925-2.438 7.111-4.739 9.256a25.175 25.175 0 01-4.244 3.17 15.247 15.247 0 01-.383.219l-.022.012-.007.004-.003.001a.752.752 0 01-.704 0l-.003-.001z"/>
+  </svg>
+);
+const HeartOutline = ({ cls }: { cls: string }) => (
+  <svg className={cls} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.5}>
+    <path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"/>
+  </svg>
+);
+
+function TrackCard({ t, index, liked, onToggle }: { t: Track; index: number; liked: boolean; onToggle?: (id: number) => void }) {
+  const genres = t.genres.length > 0 ? t.genres : t.genre ? [t.genre] : [];
+
+  return (
+    <a
+      href={`/music/${t.id}`}
+      className="group relative block"
+      style={{ animation: 'card-in 0.35s ease both', animationDelay: `${Math.min(index * 30, 600)}ms`, textDecoration: 'none' }}
+    >
+      <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-900 mb-2.5 shadow-md">
+        {t.image_url ? (
+          <img src={t.image_url} alt={t.name} loading="lazy" decoding="async"
+            className="w-full h-full object-cover will-change-transform group-hover:scale-105 transition-transform duration-500" />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center text-zinc-700 text-4xl">🎵</div>
+        )}
+        {genres.length > 0 && (
+          <div className="card-overlay absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/90 to-transparent p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+            <div className="flex flex-wrap gap-1">
+              {genres.slice(0, 2).map(g => (
+                <span key={g} className="text-xs bg-violet-500/30 text-violet-200 border border-violet-500/30 rounded-full px-2 py-0.5">{g}</span>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {onToggle && (
+        <button
+          onClick={e => { e.preventDefault(); e.stopPropagation(); onToggle(t.id); }}
+          className="absolute top-2 right-2 z-10 p-1.5 rounded-full border border-zinc-700 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:border-violet-400"
+        >
+          {liked ? <HeartFilled cls="w-4 h-4 text-violet-400" /> : <HeartOutline cls="w-4 h-4 text-zinc-300" />}
+        </button>
+      )}
+
+      <h3 className="text-white text-sm font-semibold leading-tight line-clamp-1 group-hover:text-violet-300 transition-colors">{t.name}</h3>
+      <p className="text-zinc-400 text-xs mt-0.5 line-clamp-1">{t.artist}</p>
+      {fmtNum(t.listeners) && <p className="text-zinc-600 text-xs mt-0.5">{fmtNum(t.listeners)} listeners</p>}
+    </a>
+  );
+}
+
+export default function TracksList() {
+  const [tracks, setTracks] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState('');
+  const [focused, setFocused] = useState(false);
+  const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
+  const [uid, setUid] = useState<string | null>(null);
+  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    fetch('http://localhost:8000/tracks')
+      .then(r => r.json())
+      .then(setTracks)
+      .catch(() => setError('Backend offline — run: uvicorn main:app --reload'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    return onAuthStateChanged(auth, user => {
+      setUid(user?.uid ?? null);
+      if (user) {
+        fetch(`http://localhost:8000/likes/${user.uid}`)
+          .then(r => r.json())
+          .then(d => setLikedIds(new Set((d.tracks ?? []).map((t: any) => t.id as number))))
+          .catch(() => {});
+      } else {
+        setLikedIds(new Set());
+      }
+    });
+  }, []);
+
+  async function toggleLike(trackId: number) {
+    if (!uid) return;
+    const was = likedIds.has(trackId);
+    setLikedIds(prev => { const n = new Set(prev); was ? n.delete(trackId) : n.add(trackId); return n; });
+    try {
+      await fetch(`http://localhost:8000/likes/${uid}/track/${trackId}`, { method: 'POST' });
+    } catch {
+      setLikedIds(prev => { const n = new Set(prev); was ? n.add(trackId) : n.delete(trackId); return n; });
+    }
+  }
+
+  const allGenres = useMemo(() => {
+    const set = new Set<string>();
+    tracks.forEach(t => {
+      (t.genres.length > 0 ? t.genres : t.genre ? [t.genre] : []).forEach(g => set.add(g));
+    });
+    return [...set].sort();
+  }, [tracks]);
+
+  function toggleGenre(g: string) {
+    setSelectedGenres(prev =>
+      prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]
+    );
+  }
+
+  const ql = search.toLowerCase();
+  const filtered = tracks.filter(t => {
+    const matchSearch = !search ||
+      t.name.toLowerCase().includes(ql) ||
+      t.artist.toLowerCase().includes(ql) ||
+      t.genre.toLowerCase().includes(ql) ||
+      t.tags.some(tag => tag.toLowerCase().includes(ql));
+    const trackGenres = t.genres.length > 0 ? t.genres : t.genre ? [t.genre] : [];
+    const matchGenre = selectedGenres.length === 0 ||
+      selectedGenres.some(g => trackGenres.includes(g));
+    return matchSearch && matchGenre;
+  });
+
+  if (loading) return (
+    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+      {Array.from({ length: 15 }).map((_, i) => (
+        <div key={i} className="animate-pulse" style={{ animationDelay: `${i * 50}ms` }}>
+          <div className="aspect-square rounded-xl bg-zinc-900 mb-2.5" />
+          <div className="h-3 bg-zinc-900 rounded w-3/4 mb-1.5" />
+          <div className="h-2.5 bg-zinc-900 rounded w-1/2 mb-1" />
+          <div className="h-2.5 bg-zinc-900 rounded w-1/3" />
+        </div>
+      ))}
+    </div>
+  );
+
+  if (error) return (
+    <div className="bg-red-950/30 border border-red-800/50 rounded-xl p-6 text-red-400 text-sm">{error}</div>
+  );
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <p className="text-zinc-500 text-sm">
+          {filtered.length < tracks.length
+            ? <><span className="text-white font-medium">{filtered.length}</span> of {tracks.length}</>
+            : <>{tracks.length} tracks</>}
+        </p>
+        <input
+          type="text"
+          placeholder="Search…"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
+          className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-violet-500 w-56 transition-all duration-300"
+          style={{ boxShadow: focused ? '0 0 0 3px rgba(139,92,246,0.15)' : 'none' }}
+        />
+      </div>
+
+      <GenreFilters
+        genres={allGenres}
+        selected={selectedGenres}
+        onToggle={toggleGenre}
+        color={{
+          active: 'bg-violet-500 border-violet-500 text-white',
+          pill: 'border-zinc-700 text-zinc-400 hover:border-violet-600 hover:text-violet-300',
+        }}
+      />
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {filtered.map((t, i) => (
+          <TrackCard key={t.id} t={t} index={i} liked={likedIds.has(t.id)} onToggle={uid ? toggleLike : undefined} />
+        ))}
+      </div>
+    </div>
+  );
+}

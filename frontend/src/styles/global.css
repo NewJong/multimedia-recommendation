@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+html {
+  scrollbar-gutter: stable;
+}
+
+@keyframes card-in {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@keyframes dropdown-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+/* Disable Astro View Transitions cross-fade — avoids Tailwind v4 style timing flash.
+   Card-in animations on each page provide the visual transition effect instead. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Light theme */
+html.light body {
+  filter: invert(1) hue-rotate(180deg);
+  background-color: #fff;
+}
+
+html.light img,
+html.light video {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* Shadows: after body invert, white shadows become dark — visible on light background */
+html.light .shadow-sm  { box-shadow: 0 1px 4px 0 rgba(255,255,255,0.35); }
+html.light .shadow-md  { box-shadow: 0 4px 14px 0 rgba(255,255,255,0.4), 0 2px 4px 0 rgba(255,255,255,0.25); }
+html.light .shadow-lg  { box-shadow: 0 8px 24px 0 rgba(255,255,255,0.4), 0 4px 8px 0 rgba(255,255,255,0.25); }
+html.light .shadow-xl  { box-shadow: 0 16px 40px 0 rgba(255,255,255,0.4); }
+
+/* Card hover overlays: counter-invert so gradient stays dark, not white */
+html.light .card-overlay {
+  filter: invert(1) hue-rotate(180deg);
+}

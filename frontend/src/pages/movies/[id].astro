@@ -1,0 +1,9 @@
+---
+export const prerender = false;
+import Layout from '../../layouts/Layout.astro';
+import MovieDetail from '../../components/MovieDetail';
+const { id } = Astro.params;
+---
+<Layout title="Movie — TIOKhor">
+  <MovieDetail id={Number(id)} client:load />
+</Layout>
