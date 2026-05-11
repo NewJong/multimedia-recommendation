@@ -50,5 +50,3 @@ yarn-debug.log*
 *.sqlite
 *.db
 backend/create_likes.py
-
-*.txt
