@@ -26,6 +26,7 @@ node_modules/
 # Astro build output
 dist/
 .astro/
+frontend/.astro/
 
 # Package manager locks (keep package-lock.json, ignore yarn/pnpm)
 yarn.lock
