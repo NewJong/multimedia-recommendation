@@ -51,8 +51,8 @@ MERGE = {
     "open-world":         "Open World",
     # shooter sub-genres
     "third person shooter": "Third-Person Shooter",
-    # fps
-    "fps":                "FPS",
+    # fps — merge into First-Person (RDR2 has both FPS and First-Person as duplicates)
+    "fps":                "First-Person",
     "first-person shooter": "FPS",
     # rpg
     "role-playing":       "RPG",
