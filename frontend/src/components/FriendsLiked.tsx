@@ -7,53 +7,50 @@ interface Friend { firebase_uid: string; name: string; photo_url: string | null 
 interface Props {
   itemType: 'track' | 'movie' | 'game';
   itemId: number;
-  ringColor: string; // e.g. 'ring-violet-500/40'
-}
-
-function Avatar({ f, ring }: { f: Friend; ring: string }) {
-  return f.photo_url
-    ? <img src={f.photo_url} alt={f.name} referrerPolicy="no-referrer"
-        title={f.name}
-        className={`w-6 h-6 rounded-full object-cover ring-2 ${ring} bg-zinc-800 -ml-1.5 first:ml-0`} />
-    : <div title={f.name}
-        className={`w-6 h-6 rounded-full ring-2 ${ring} bg-zinc-700 flex items-center justify-center text-[10px] font-semibold text-zinc-300 -ml-1.5 first:ml-0 flex-shrink-0`}>
-        {f.name?.[0] ?? '?'}
-      </div>;
-}
-
-function formatNames(friends: Friend[]): string {
-  if (friends.length === 1) return `${friends[0].name} liked this`;
-  if (friends.length === 2) return `${friends[0].name} and ${friends[1].name} liked this`;
-  return `${friends[0].name}, ${friends[1].name} and ${friends.length - 2} other${friends.length - 2 > 1 ? 's' : ''} liked this`;
+  ringColor: string;
 }
 
 export default function FriendsLiked({ itemType, itemId, ringColor }: Props) {
   const [friends, setFriends] = useState<Friend[]>([]);
-  const [ready, setReady]     = useState(false);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, user => {
-      if (!user) { setReady(true); return; }
+      if (!user) return;
       fetch(`http://localhost:8000/likes/friends/${user.uid}/${itemType}/${itemId}`)
         .then(r => r.json())
-        .then(d => { setFriends(d ?? []); setReady(true); })
-        .catch(() => setReady(true));
+        .then(d => setFriends(d ?? []))
+        .catch(() => {});
     });
     return unsub;
   }, [itemType, itemId]);
 
-  if (!ready || friends.length === 0) return null;
+  if (friends.length === 0) return null;
 
   return (
-    <div
-      className="flex items-center gap-2 mt-3"
-      style={{ animation: 'fade-in 0.4s ease both' }}
-    >
-      <style>{`@keyframes fade-in { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }`}</style>
-      <div className="flex items-center">
-        {friends.slice(0, 5).map(f => <Avatar key={f.firebase_uid} f={f} ring={ringColor} />)}
-      </div>
-      <p className="text-zinc-500 text-xs">{formatNames(friends)}</p>
+    <div className="flex items-center -space-x-1.5">
+      {friends.slice(0, 5).map(f => (
+        <a
+          key={f.firebase_uid}
+          href={`/profile/${f.firebase_uid}`}
+          className="relative group/tip block"
+        >
+          {f.photo_url
+            ? <img
+                src={f.photo_url}
+                alt={f.name}
+                referrerPolicy="no-referrer"
+                className={`w-7 h-7 rounded-full object-cover ring-2 ${ringColor} ring-offset-1 ring-offset-black transition-transform duration-150 hover:scale-110 hover:z-10`}
+              />
+            : <div className={`w-7 h-7 rounded-full ring-2 ${ringColor} ring-offset-1 ring-offset-black bg-zinc-700 flex items-center justify-center text-[11px] font-semibold text-zinc-300 transition-transform duration-150 hover:scale-110 hover:z-10`}>
+                {f.name?.[0] ?? '?'}
+              </div>
+          }
+          {/* Tooltip */}
+          <span className="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-lg bg-zinc-800 border border-zinc-700 text-white text-xs whitespace-nowrap opacity-0 group-hover/tip:opacity-100 transition-opacity duration-150 z-50 shadow-lg">
+            {f.name}
+          </span>
+        </a>
+      ))}
     </div>
   );
 }

@@ -98,8 +98,7 @@ export default function GameDetail({ id }: { id: number }) {
                 <div><p className="text-zinc-300 font-semibold text-lg leading-none">{game.esrb_rating}</p><p className="text-zinc-500 text-xs mt-0.5">ESRB</p></div>
               )}
               <LikeButton itemType="game" itemId={game.id} likedClass="text-emerald-400" />
-            </div>
-            <FriendsLiked itemType="game" itemId={game.id} ringColor="ring-emerald-500/40" />
+              <FriendsLiked itemType="game" itemId={game.id} ringColor="ring-emerald-500/50" />
           </div>
         </div>
 
