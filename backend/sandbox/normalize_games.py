@@ -43,7 +43,7 @@ REMOVE = {
     "atmospheric",
     # single-word noise tags (mostly 1–2 occurrences, no taste signal)
     "battle", "friends", "night", "ship", "cats", "hero", "island",
-    "city", "prison", "puzzles", "1-bit", "japanese", "combat",
+    "city", "prison", "1-bit", "japanese", "combat",
 }
 
 # Synonyms: any key → canonical value (title-cased)
@@ -71,6 +71,9 @@ MERGE = {
     "first-person shooter": "First-Person",
     # perspective duplicate
     "3rd-person perspective": "Third-Person",
+    # weak variants → stronger canonical
+    "puzzles":               "Puzzle",
+    "story":                 "Story Rich",
     # rpg
     "role-playing":       "RPG",
     "role playing":       "RPG",
