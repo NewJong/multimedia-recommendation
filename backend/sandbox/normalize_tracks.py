@@ -25,10 +25,25 @@ NOISE = {
     "party", "workout", "running", "study", "sleep",
     # too generic — 45% of tracks have it; sub-genres below are already more specific
     "rock",
+    # decade tags — no taste signal
+    "80s", "70s", "90s", "60s", "50s",
 }
 
 # lowercase key → canonical tag
 MERGE = {
+    # lowercase duplicates of already-canonical tags (case normalization)
+    "alternative":         "Alternative Rock",
+    "pop":                 "Pop",
+    "electronic":          "Electronic",
+    "jazz":                "Jazz",
+    "soul":                "Soul/Blues",
+    "blues":               "Soul/Blues",
+    "punk":                "Punk/Emo",
+    "indie":               "Indie",
+    "folk":                "Folk",
+    "metal":               "Metal",
+    "progressive rock":    "Progressive Rock",
+    "fusion":              "Jazz",
     # hip-hop variants
     "hip hop":             "Hip-Hop",
     "hip-hop":             "Hip-Hop",

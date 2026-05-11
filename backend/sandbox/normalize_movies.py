@@ -30,8 +30,14 @@ REMOVE = {
     # time descriptors (too broad)
     "1980s", "1990s", "2000s", "1970s", "1960s", "1950s", "1940s", "1930s",
     "19th century", "20th century", "21st century",
-    # location noise
+    # location noise (cities, states, countries — not taste signals)
     "new york", "los angeles", "london", "paris", "america", "england", "france",
+    "washington dc, usa", "los angeles, california", "san francisco, california",
+    "malibu", "brooklyn, new york city", "new mexico", "texas", "virginia",
+    "maine", "massachusetts", "california", "minnesota", "tennessee",
+    "rome, italy", "paris, france", "london, england", "tokyo, japan",
+    "south korea", "seoul, south korea", "italy", "australia", "africa",
+    "europe", "middle east", "jamaica", "caribbean sea",
     # structural / meta — not about taste
     "based on comic", "based on novel or book", "based on young adult novel",
     "sequel", "remake", "prequel", "reboot",

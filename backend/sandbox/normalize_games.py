@@ -21,14 +21,29 @@ REMOVE = {
     "early access", "steam achievements", "steam cloud", "steam trading cards",
     "steam leaderboards", "steam workshop", "full controller support",
     "includes level editor", "commentary available",
+    "valve anti-cheat enabled", "in-app purchases", "free to play",
     # ESRB ratings that leak into tags
     "mature", "teen", "everyone", "everyone 10+", "adults only", "rating pending",
     # technical feature flags (not about what kind of game it is)
     "moddable", "mod support",
+    # hardware / platform features
+    "controller", "vr",
+    # multiplayer mode tags — features, not taste
+    "pvp", "pve", "online pvp", "online multiplayer", "local multiplayer",
+    "cross-platform multiplayer", "split screen", "multiplayer",
+    # content descriptors (ESRB-adjacent — not about taste)
+    "gore", "violent", "violence", "blood", "nudity", "sexual content",
+    # subjective / review metrics
+    "masterpiece", "emotional", "relaxing", "replay value",
+    # structural / duration descriptors
+    "short", "remake", "story",
     # pure sentiment / noise
     "classic", "great soundtrack", "stats",
     # too generic — appears in 60%+ of games, kills signal
     "atmospheric",
+    # single-word noise tags (mostly 1–2 occurrences, no taste signal)
+    "battle", "friends", "night", "ship", "cats", "hero", "island",
+    "city", "prison", "puzzles", "1-bit", "japanese", "combat",
 }
 
 # Synonyms: any key → canonical value (title-cased)
@@ -53,7 +68,9 @@ MERGE = {
     "third person shooter": "Third-Person Shooter",
     # fps — merge into First-Person (RDR2 has both FPS and First-Person as duplicates)
     "fps":                "First-Person",
-    "first-person shooter": "FPS",
+    "first-person shooter": "First-Person",
+    # perspective duplicate
+    "3rd-person perspective": "Third-Person",
     # rpg
     "role-playing":       "RPG",
     "role playing":       "RPG",
