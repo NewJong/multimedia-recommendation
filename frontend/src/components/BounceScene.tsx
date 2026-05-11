@@ -44,9 +44,9 @@ export default function BounceScene() {
   // Fetch all three domains
   useEffect(() => {
     Promise.all([
-      fetch('${API_BASE}/tracks').then(r => r.json()).catch(() => []),
-      fetch('${API_BASE}/movies').then(r => r.json()).catch(() => []),
-      fetch('${API_BASE}/games').then(r  => r.json()).catch(() => []),
+      fetch(`${API_BASE}/tracks`).then(r => r.json()).catch(() => []),
+      fetch(`${API_BASE}/movies`).then(r => r.json()).catch(() => []),
+      fetch(`${API_BASE}/games`).then(r  => r.json()).catch(() => []),
     ]).then(([tracks, movies, games]) => {
       const W  = boxRef.current?.clientWidth  ?? 1200;
       const H  = boxRef.current?.clientHeight ?? 650;

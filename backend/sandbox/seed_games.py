@@ -1,8 +1,9 @@
 """
-Creates games table and seeds 100 games from RAWG.
+Fetches up to 100 NEW games from RAWG and inserts them into the existing table.
+Does NOT drop or recreate the table.
 Run: python seed_games.py
 """
-import sys, httpx, psycopg2, time, re
+import sys, httpx, psycopg2, psycopg2.extras, time, re
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -14,7 +15,6 @@ API_KEY = os.getenv("RAWG_API_KEY")
 DB_URL  = os.getenv("DATABASE_URL")
 BASE    = "https://api.rawg.io/api"
 
-# ── Priority list (user's picks first) ──────────────────────────────────────
 PRIORITY = [
     "Red Dead Redemption 2",
     "Grand Theft Auto V",
@@ -38,9 +38,7 @@ PRIORITY = [
     "The Last of Us Part II",
 ]
 
-# ── Additional games per genre to reach 100 ──────────────────────────────────
 EXTRA = [
-    # Action / Adventure
     "The Legend of Zelda: Breath of the Wild",
     "Assassin's Creed Odyssey",
     "Batman: Arkham Knight",
@@ -51,7 +49,6 @@ EXTRA = [
     "Uncharted 4: A Thief's End",
     "Control",
     "Alan Wake 2",
-    # RPG
     "Elden Ring",
     "Dark Souls III",
     "Baldur's Gate 3",
@@ -62,7 +59,6 @@ EXTRA = [
     "Persona 5",
     "Monster Hunter: World",
     "Hollow Knight",
-    # Shooter
     "Doom Eternal",
     "Halo Infinite",
     "Apex Legends",
@@ -73,7 +69,6 @@ EXTRA = [
     "Titanfall 2",
     "Metro Exodus",
     "Escape from Tarkov",
-    # Strategy
     "Civilization VI",
     "Total War: Three Kingdoms",
     "StarCraft II",
@@ -82,7 +77,6 @@ EXTRA = [
     "Into the Breach",
     "Crusader Kings III",
     "Anno 1800",
-    # Simulation / Sandbox
     "The Sims 4",
     "Stardew Valley",
     "Cities: Skylines",
@@ -90,13 +84,11 @@ EXTRA = [
     "Factorio",
     "RimWorld",
     "Planet Zoo",
-    # Racing
     "Forza Horizon 5",
     "Gran Turismo 7",
     "Need for Speed: Heat",
     "F1 23",
     "Dirt Rally 2.0",
-    # Horror / Survival
     "Resident Evil Village",
     "Resident Evil 4 (Remake)",
     "Dead Space (Remake)",
@@ -104,7 +96,6 @@ EXTRA = [
     "Subnautica",
     "The Forest",
     "Green Hell",
-    # Platformer / Indie
     "Celeste",
     "Hades",
     "Ori and the Will of the Wisps",
@@ -112,19 +103,16 @@ EXTRA = [
     "Disco Elysium",
     "Undertale",
     "Shovel Knight",
-    # Fighting / Sports
     "Mortal Kombat 11",
     "Street Fighter 6",
     "FIFA 23",
     "NBA 2K23",
-    # MMO / Multiplayer
     "World of Warcraft",
     "Path of Exile",
     "Deep Rock Galactic",
     "Phasmophobia",
     "It Takes Two",
     "A Way Out",
-    # Puzzle / Casual
     "Portal 2",
     "The Witness",
     "Return of the Obra Dinn",
@@ -151,7 +139,6 @@ GENRE_MAP = {
     "board-games":            "Board Games",
 }
 
-# More specific genres take priority over generic "Action"/"Adventure"
 GENRE_PRIORITY = [
     "RPG", "Strategy", "Racing", "Simulation", "Puzzle",
     "Platformer", "Fighting", "Sports", "MMO", "Shooter",
@@ -159,22 +146,34 @@ GENRE_PRIORITY = [
     "Family", "Card", "Board Games",
 ]
 
+NOISE_TAGS = {
+    "singleplayer", "multiplayer", "steam achievements", "full controller support",
+    "steam cloud", "great soundtrack", "stats", "steam trading cards",
+    "steam leaderboards", "includes level editor", "commentary available",
+    # will also be cleaned by normalize_games.py — listed here to avoid seeding noise
+    "early access", "mature", "teen", "everyone", "everyone 10+", "adults only",
+    "moddable",
+}
 
-def resolve_genre(genres: list[str]) -> str:
+
+def resolve_genre(genres):
     for preferred in GENRE_PRIORITY:
         if preferred in genres:
             return preferred
     return genres[0] if genres else ""
 
-NOISE_TAGS = {
-    "singleplayer", "multiplayer", "steam achievements", "full controller support",
-    "steam cloud", "great soundtrack", "stats", "steam trading cards",
-    "steam leaderboards", "includes level editor", "commentary available",
-}
 
-
-def strip_html(text):
-    return re.sub(r"<[^>]+>", "", text or "").strip()
+def strip_html(text: str, max_len: int = 1500) -> str:
+    import html as _html
+    text = _html.unescape(text or "")       # &#39; → '  &amp; → &
+    text = re.sub(r"<[^>]+>", "", text)     # strip HTML tags
+    text = re.sub(r"\n{3,}", "\n\n", text)  # collapse blank lines
+    text = text.strip()
+    if len(text) <= max_len:
+        return text
+    # truncate at last sentence boundary within max_len
+    cut = text.rfind(". ", 0, max_len)
+    return text[:cut + 1] if cut != -1 else text[:max_len]
 
 
 def rget(path, **params):
@@ -198,20 +197,14 @@ def fetch_game(rawg_id):
     genres = [GENRE_MAP.get(g["slug"], g["name"]) for g in d.get("genres", [])]
     genre  = resolve_genre(genres)
 
-    raw_tags = [t["name"] for t in d.get("tags", [])
-                if t.get("language") == "eng"]
+    raw_tags = [t["name"] for t in d.get("tags", []) if t.get("language") == "eng"]
     tags = [t for t in raw_tags if t.lower() not in NOISE_TAGS][:12]
 
-    platforms = list({
-        p["platform"]["name"]
-        for p in d.get("platforms") or []
-    })
-
+    platforms = list({p["platform"]["name"] for p in d.get("platforms") or []})
     devs = [x["name"] for x in d.get("developers") or []]
     pubs = [x["name"] for x in d.get("publishers") or []]
-
     esrb = (d.get("esrb_rating") or {}).get("name", "")
-    desc = strip_html(d.get("description", ""))[:1000]
+    desc = strip_html(d.get("description", ""))
 
     release_year = 0
     rd = d.get("released", "")
@@ -219,75 +212,59 @@ def fetch_game(rawg_id):
         release_year = int(rd[:4])
 
     return {
-        "rawg_id":     d["id"],
-        "title":       d["name"],
-        "genre":       genre,
-        "genres":      genres,
-        "tags":        tags,
-        "description": desc,
+        "rawg_id":      d["id"],
+        "title":        d["name"],
+        "genre":        genre,
+        "genres":       genres,
+        "tags":         tags,
+        "description":  desc,
         "release_year": release_year,
-        "rating":      round(float(d.get("rating") or 0), 2),
-        "metacritic":  d.get("metacritic") or 0,
-        "playtime":    d.get("playtime") or 0,
-        "platforms":   platforms,
-        "developers":  devs,
-        "publishers":  pubs,
-        "esrb_rating": esrb,
-        "poster_url":  d.get("background_image") or "",
+        "rating":       round(float(d.get("rating") or 0), 2),
+        "metacritic":   d.get("metacritic") or 0,
+        "playtime":     d.get("playtime") or 0,
+        "platforms":    platforms,
+        "developers":   devs,
+        "publishers":   pubs,
+        "esrb_rating":  esrb,
+        "poster_url":   d.get("background_image") or "",
     }
 
 
 # ── DB ────────────────────────────────────────────────────────────────────────
-conn = psycopg2.connect(DB_URL)
+conn = psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 cur  = conn.cursor()
 
-cur.execute("DROP TABLE IF EXISTS games;")
-cur.execute("""
-CREATE TABLE games (
-    id           SERIAL PRIMARY KEY,
-    title        TEXT NOT NULL,
-    genre        TEXT NOT NULL DEFAULT '',
-    genres       TEXT[] NOT NULL DEFAULT '{}',
-    tags         TEXT[] NOT NULL DEFAULT '{}',
-    description  TEXT NOT NULL DEFAULT '',
-    release_year INTEGER NOT NULL DEFAULT 0,
-    rating       NUMERIC(3,2) NOT NULL DEFAULT 0,
-    metacritic   INTEGER NOT NULL DEFAULT 0,
-    playtime     INTEGER NOT NULL DEFAULT 0,
-    platforms    TEXT[] NOT NULL DEFAULT '{}',
-    developers   TEXT[] NOT NULL DEFAULT '{}',
-    publishers   TEXT[] NOT NULL DEFAULT '{}',
-    esrb_rating  TEXT NOT NULL DEFAULT '',
-    poster_url   TEXT NOT NULL DEFAULT '',
-    rawg_id      INTEGER NOT NULL UNIQUE,
-    created_at   TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-""")
-conn.commit()
-print("Table created.\n")
+# Load existing rawg_ids so we skip them
+cur.execute("SELECT rawg_id FROM games")
+existing_rawg_ids = {r["rawg_id"] for r in cur.fetchall()}
+print(f"Already in DB: {len(existing_rawg_ids)} games\n")
 
-# ── Collect IDs (priority first, then extra) ──────────────────────────────────
-all_names = PRIORITY + EXTRA
-seen_ids  = set()
+# ── Search phase ──────────────────────────────────────────────────────────────
+all_names   = PRIORITY + EXTRA
+seen_ids    = set()
 ordered_ids = []
 
-print("Searching games...")
+print("Searching for new games...")
 for name in all_names:
     try:
         gid = search_game(name)
         time.sleep(0.2)
-        if gid and gid not in seen_ids:
+        if not gid:
+            print(f"  [404]  {name}")
+            continue
+        if gid in existing_rawg_ids:
+            print(f"  [skip] {name} — already in DB")
+            continue
+        if gid not in seen_ids:
             seen_ids.add(gid)
             ordered_ids.append((name, gid))
             print(f"  found  {name}")
-        elif not gid:
-            print(f"  [404]  {name}")
     except Exception as e:
         print(f"  [err]  {name}: {e}")
 
-print(f"\nFound {len(ordered_ids)} games — inserting...\n")
+print(f"\n{len(ordered_ids)} new games to fetch — inserting...\n")
 
-# ── Insert ────────────────────────────────────────────────────────────────────
+# ── Insert phase ──────────────────────────────────────────────────────────────
 inserted = 0
 skipped  = 0
 failed   = 0
@@ -332,8 +309,8 @@ for name, rawg_id in ordered_ids:
         print(f"  [err] {name}: {e}")
         failed += 1
 
-cur.execute("SELECT COUNT(*) FROM games;")
-total = cur.fetchone()[0]
+cur.execute("SELECT COUNT(*) as n FROM games")
+total = cur.fetchone()["n"]
 cur.close()
 conn.close()
 

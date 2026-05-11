@@ -113,7 +113,7 @@ export default function SearchResults() {
     if (!q.trim()) { setResults(null); return; }
     setLoading(true);
     setAiError(null);
-    fetch('${API_BASE}/search', {
+    fetch(`${API_BASE}/search`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ q, ai: aiMode }),

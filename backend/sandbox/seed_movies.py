@@ -1,8 +1,9 @@
 """
-Creates movies table and seeds 100 films from TMDB across diverse genres.
+Fetches up to 100 NEW movies from TMDB and inserts them into the existing table.
+Does NOT drop or recreate the table.
 Run: python seed_movies.py
 """
-import sys, httpx, psycopg2, time
+import sys, httpx, psycopg2, psycopg2.extras, time
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -18,7 +19,6 @@ BACK    = "https://image.tmdb.org/t/p/w1280"
 
 HEADERS = {"Authorization": f"Bearer {os.getenv('IMDB_API_ACCESS_KEY')}"}
 
-# TMDB genre_id -> name
 GENRE_MAP = {
     28: "Action", 12: "Adventure", 16: "Animation", 35: "Comedy",
     80: "Crime", 99: "Documentary", 18: "Drama", 10751: "Family",
@@ -27,7 +27,7 @@ GENRE_MAP = {
     53: "Thriller", 10752: "War", 37: "Western",
 }
 
-# Fetch ~8 movies per genre to reach 100+
+# Fetch across genres — discovers more unique IDs than we need, stops at 100 inserts
 GENRE_PAGES = [
     (28,    2),  # Action
     (35,    2),  # Comedy
@@ -54,92 +54,60 @@ def get(path, **params):
 
 
 def fetch_movie(tmdb_id):
-    # Basic info
     d = get(f"/movie/{tmdb_id}", append_to_response="credits,keywords")
 
-    genres      = [GENRE_MAP.get(g["id"], g["name"]) for g in d.get("genres", [])]
-    genre       = genres[0] if genres else ""
+    genres   = [GENRE_MAP.get(g["id"], g["name"]) for g in d.get("genres", [])]
+    genre    = genres[0] if genres else ""
+    kw_list  = d.get("keywords", {}).get("keywords", [])
+    keywords = [k["name"] for k in kw_list[:15]]
 
-    # Keywords — very useful for cross-domain recommendations
-    kw_list     = d.get("keywords", {}).get("keywords", [])
-    keywords    = [k["name"] for k in kw_list[:15]]
+    crew     = d.get("credits", {}).get("crew", [])
+    cast_raw = d.get("credits", {}).get("cast", [])
+    director = next((p["name"] for p in crew if p["job"] == "Director"), "")
+    cast     = [p["name"] for p in cast_raw[:6]]
 
-    # Credits
-    crew        = d.get("credits", {}).get("crew", [])
-    cast_raw    = d.get("credits", {}).get("cast", [])
-    director    = next((p["name"] for p in crew if p["job"] == "Director"), "")
-    cast        = [p["name"] for p in cast_raw[:6]]
-
-    poster      = f"{IMG}{d['poster_path']}"   if d.get("poster_path")   else ""
-    backdrop    = f"{BACK}{d['backdrop_path']}" if d.get("backdrop_path") else ""
+    poster   = f"{IMG}{d['poster_path']}"   if d.get("poster_path")   else ""
+    backdrop = f"{BACK}{d['backdrop_path']}" if d.get("backdrop_path") else ""
 
     release_year = int(d.get("release_date", "0")[:4]) if d.get("release_date") else 0
-
-    collection  = d.get("belongs_to_collection", {})
-    collection_name = collection.get("name", "") if collection else ""
+    collection   = d.get("belongs_to_collection") or {}
 
     return {
-        "tmdb_id":        d["id"],
-        "title":          d["title"],
-        "genre":          genre,
-        "genres":         genres,
-        "keywords":       keywords,
-        "overview":       d.get("overview", ""),
-        "tagline":        d.get("tagline", ""),
-        "release_year":   release_year,
-        "runtime":        d.get("runtime") or 0,
-        "rating":         round(float(d.get("vote_average") or 0), 1),
-        "vote_count":     d.get("vote_count") or 0,
-        "popularity":     round(float(d.get("popularity") or 0), 3),
-        "language":       d.get("original_language", ""),
-        "status":         d.get("status", ""),
-        "director":       director,
-        "actors":         cast,
-        "poster_url":     poster,
-        "backdrop_url":   backdrop,
-        "budget":         d.get("budget") or 0,
-        "revenue":        d.get("revenue") or 0,
-        "collection":     collection_name,
+        "tmdb_id":       d["id"],
+        "title":         d["title"],
+        "genre":         genre,
+        "genres":        genres,
+        "keywords":      keywords,
+        "overview":      d.get("overview", ""),
+        "tagline":       d.get("tagline", ""),
+        "release_year":  release_year,
+        "runtime":       d.get("runtime") or 0,
+        "rating":        round(float(d.get("vote_average") or 0), 1),
+        "vote_count":    d.get("vote_count") or 0,
+        "popularity":    round(float(d.get("popularity") or 0), 3),
+        "language":      d.get("original_language", ""),
+        "status":        d.get("status", ""),
+        "director":      director,
+        "actors":        cast,
+        "poster_url":    poster,
+        "backdrop_url":  backdrop,
+        "budget":        d.get("budget") or 0,
+        "revenue":       d.get("revenue") or 0,
+        "collection":    collection.get("name", "") if collection else "",
     }
 
 
-# ── DB ──────────────────────────────────────────────────────────────────────
-conn = psycopg2.connect(DB_URL)
+# ── DB ────────────────────────────────────────────────────────────────────────
+conn = psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 cur  = conn.cursor()
 
-cur.execute("DROP TABLE IF EXISTS movies;")
-cur.execute("""
-CREATE TABLE movies (
-    id             SERIAL PRIMARY KEY,
-    title          TEXT NOT NULL,
-    genre          TEXT NOT NULL DEFAULT '',
-    genres         TEXT[] NOT NULL DEFAULT '{}',
-    keywords       TEXT[] NOT NULL DEFAULT '{}',
-    overview       TEXT NOT NULL DEFAULT '',
-    tagline        TEXT NOT NULL DEFAULT '',
-    release_year   INTEGER NOT NULL DEFAULT 0,
-    runtime        INTEGER NOT NULL DEFAULT 0,
-    rating         NUMERIC(3,1) NOT NULL DEFAULT 0,
-    vote_count     INTEGER NOT NULL DEFAULT 0,
-    popularity     NUMERIC(10,3) NOT NULL DEFAULT 0,
-    language       TEXT NOT NULL DEFAULT '',
-    status         TEXT NOT NULL DEFAULT '',
-    director       TEXT NOT NULL DEFAULT '',
-    actors         TEXT[] NOT NULL DEFAULT '{}',
-    poster_url     TEXT NOT NULL DEFAULT '',
-    backdrop_url   TEXT NOT NULL DEFAULT '',
-    budget         BIGINT NOT NULL DEFAULT 0,
-    revenue        BIGINT NOT NULL DEFAULT 0,
-    collection     TEXT NOT NULL DEFAULT '',
-    tmdb_id        INTEGER NOT NULL UNIQUE,
-    created_at     TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
-""")
-conn.commit()
-print("Table created.\n")
+# Load existing tmdb_ids so we skip them
+cur.execute("SELECT tmdb_id FROM movies")
+existing_tmdb_ids = {r["tmdb_id"] for r in cur.fetchall()}
+print(f"Already in DB: {len(existing_tmdb_ids)} movies\n")
 
-# ── Collect movie IDs ────────────────────────────────────────────────────────
-seen_ids = set()
+# ── Collect candidate IDs from TMDB discover ──────────────────────────────────
+seen_ids  = set()
 movie_ids = []
 
 for genre_id, pages in GENRE_PAGES:
@@ -150,14 +118,14 @@ for genre_id, pages in GENRE_PAGES:
                    page=page,
                    vote_count_gte=1000)
         for m in data.get("results", []):
-            if m["id"] not in seen_ids:
+            if m["id"] not in seen_ids and m["id"] not in existing_tmdb_ids:
                 seen_ids.add(m["id"])
                 movie_ids.append(m["id"])
         time.sleep(0.15)
 
-print(f"Collected {len(movie_ids)} unique IDs — fetching details...\n")
+print(f"Collected {len(movie_ids)} new candidate IDs — fetching details...\n")
 
-# ── Fetch & insert ───────────────────────────────────────────────────────────
+# ── Fetch & insert ────────────────────────────────────────────────────────────
 inserted = 0
 skipped  = 0
 failed   = 0
@@ -181,7 +149,7 @@ for tmdb_id in movie_ids:
                  status, director, actors, poster_url, backdrop_url,
                  budget, revenue, collection, tmdb_id)
             VALUES
-                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT (tmdb_id) DO NOTHING
             RETURNING id
         """, (
@@ -205,8 +173,8 @@ for tmdb_id in movie_ids:
         print(f"  [err] tmdb:{tmdb_id} — {e}")
         failed += 1
 
-cur.execute("SELECT COUNT(*) FROM movies;")
-total = cur.fetchone()[0]
+cur.execute("SELECT COUNT(*) as n FROM movies")
+total = cur.fetchone()["n"]
 cur.close()
 conn.close()
 

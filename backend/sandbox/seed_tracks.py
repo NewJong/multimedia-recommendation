@@ -1,8 +1,9 @@
 """
-Seeds 100 popular tracks with no NULLs. Uses artist summary as fallback.
-Run: python seed_100_tracks.py
+Fetches up to 100 NEW tracks from Last.fm and inserts them into the existing table.
+Skips tracks already present in DB before making any API calls.
+Run: python seed_tracks.py
 """
-import sys, httpx, psycopg2, time, re
+import sys, httpx, psycopg2, psycopg2.extras, time, re
 from dotenv import load_dotenv
 from pathlib import Path
 import os
@@ -14,7 +15,6 @@ API_KEY = os.getenv("LASTFM_API_KEY")
 DB_URL  = os.getenv("DATABASE_URL")
 BASE    = "https://ws.audioscrobbler.com/2.0"
 
-# 120 curated tracks across diverse genres — stops at 100 successful inserts
 TRACKS = [
     # Rock
     ("Nirvana",          "Smells Like Teen Spirit"),
@@ -217,7 +217,6 @@ def lfm(method, **params):
     return data
 
 
-# Cache artist summaries to avoid repeated API calls
 artist_summary_cache = {}
 
 def get_artist_summary(artist):
@@ -239,7 +238,6 @@ def fetch_track(artist, title):
     data = lfm("track.getInfo", artist=artist, track=title)
     t = data["track"]
 
-    # image from album
     image = ""
     if "album" in t:
         for img in reversed(t["album"].get("image", [])):
@@ -247,9 +245,7 @@ def fetch_track(artist, title):
                 image = img["#text"]
                 break
 
-    album = t.get("album", {}).get("title", "") or ""
-
-    # summary: track wiki → artist bio fallback
+    album   = t.get("album", {}).get("title", "") or ""
     summary = strip_html(t.get("wiki", {}).get("summary", ""))
     if not summary:
         summary = get_artist_summary(artist)
@@ -260,7 +256,7 @@ def fetch_track(artist, title):
     )
     if not tags:
         try:
-            raw = lfm("artist.getTopTags", artist=artist)
+            raw  = lfm("artist.getTopTags", artist=artist)
             tags = clean_tags(
                 [tg["name"] for tg in raw["toptags"]["tag"][:8]],
                 artist
@@ -284,23 +280,35 @@ def fetch_track(artist, title):
     }
 
 
-conn = psycopg2.connect(DB_URL)
+# ── DB ────────────────────────────────────────────────────────────────────────
+conn = psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 cur  = conn.cursor()
+
+# Load existing (name, artist) pairs — normalised to lowercase for comparison
+cur.execute("SELECT LOWER(name) as name, LOWER(artist) as artist FROM tracks")
+existing = {(r["name"], r["artist"]) for r in cur.fetchall()}
+print(f"Already in DB: {len(existing)} tracks\n")
+
+# Filter out tracks we already have before hitting the API
+new_tracks = [
+    (artist, title) for artist, title in TRACKS
+    if (title.lower(), artist.lower()) not in existing
+]
+print(f"{len(new_tracks)} new tracks to fetch ({len(TRACKS) - len(new_tracks)} already in DB)\n")
 
 inserted = 0
 skipped  = 0
 failed   = 0
 
-for artist, title in TRACKS:
+for artist, title in new_tracks:
     if inserted >= 100:
         break
     try:
         info = fetch_track(artist, title)
         time.sleep(0.25)
 
-        # skip if critical fields still empty
         if not info["image_url"] or not info["album"]:
-            print(f"  [skip-incomplete] {artist} — {title}  (image={bool(info['image_url'])}, album={bool(info['album'])})")
+            print(f"  [skip] {artist} — {title}  (image={bool(info['image_url'])}, album={bool(info['album'])})")
             failed += 1
             continue
 
@@ -317,6 +325,7 @@ for artist, title in TRACKS:
             info["playcount"], info["summary"], info["image_url"], info["url"],
         ))
         conn.commit()
+
         if cur.fetchone():
             print(f"  + [{info['genre'] or '?':15}] {info['artist']} — {info['name']}")
             inserted += 1
@@ -329,8 +338,8 @@ for artist, title in TRACKS:
         print(f"  [err] {artist} — {title}: {e}")
         failed += 1
 
-cur.execute("SELECT COUNT(*) FROM tracks;")
-total = cur.fetchone()[0]
+cur.execute("SELECT COUNT(*) as n FROM tracks")
+total = cur.fetchone()["n"]
 cur.close()
 conn.close()
 

@@ -37,7 +37,9 @@ function GenreFilters({ genres, selected, onToggle, color }: {
   );
 }
 
-function GameCard({ g, index, liked, onToggle }: { g: Game; index: number; liked: boolean; onToggle?: (id: number) => void }) {
+interface RecMeta { score: number; matchedTags: string[] }
+
+function GameCard({ g, index, liked, onToggle, recMeta }: { g: Game; index: number; liked: boolean; onToggle?: (id: number) => void; recMeta?: RecMeta }) {
   return (
     <a href={`/games/${g.id}`} className="group relative block"
       style={{ animation: 'card-in 0.35s ease both', animationDelay: `${Math.min(index * 30, 600)}ms`, textDecoration: 'none' }}>
@@ -89,7 +91,14 @@ function GameCard({ g, index, liked, onToggle }: { g: Game; index: number; liked
       </div>
       <h3 className="text-white text-sm font-semibold leading-tight line-clamp-1 group-hover:text-emerald-300 transition-colors">{g.title}</h3>
       <p className="text-zinc-500 text-xs mt-0.5">{g.release_year || '—'}</p>
-      {g.developers.length > 0 && <p className="text-zinc-600 text-xs mt-0.5 truncate">{g.developers[0]}</p>}
+      {recMeta ? (
+        <p className="text-xs mt-0.5 flex items-center gap-1.5 flex-wrap">
+          <span className="text-emerald-400 font-semibold">✦ {recMeta.score}%</span>
+          {recMeta.matchedTags.map(tag => <span key={tag} className="text-zinc-600">{tag}</span>)}
+        </p>
+      ) : (
+        g.developers.length > 0 && <p className="text-zinc-600 text-xs mt-0.5 truncate">{g.developers[0]}</p>
+      )}
     </a>
   );
 }
@@ -143,12 +152,17 @@ export default function GamesList() {
   }
 
   useEffect(() => {
-    if (sortTab !== 'foryou' || !uid || recsLoaded) return;
+    if (!uid || recsLoaded) return;
     setRecsLoading(true);
     fetch(`${API_BASE}/recommendations/${uid}/games`)
       .then(r => r.json()).then(d => { setRecs(d); setRecsLoaded(true); })
       .catch(() => setRecsLoaded(true)).finally(() => setRecsLoading(false));
-  }, [sortTab, uid, recsLoaded]);
+  }, [uid, recsLoaded]);
+
+  const recMap = useMemo(() =>
+    new Map((recs as any[]).map(r => [r.id, { score: r._score, matchedTags: r._matched_tags || [] }])),
+    [recs]
+  );
 
   const allGenres = useMemo(() => {
     const set = new Set<string>();
@@ -172,6 +186,11 @@ export default function GamesList() {
     if (sortTab === 'new')      return [...filtered].sort((a, b) => (b.release_year || 0) - (a.release_year || 0));
     return [...filtered].sort((a, b) => (b.rating || 0) - (a.rating || 0));
   }, [filtered, sortTab]);
+
+  const filteredRecs = useMemo(() => {
+    if (selectedGenres.length === 0) return recs;
+    return recs.filter((r: any) => (r.genres || []).some((genre: string) => selectedGenres.includes(genre)));
+  }, [recs, selectedGenres]);
 
   if (loading) return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -221,7 +240,7 @@ export default function GamesList() {
             color={{ active: 'bg-emerald-500 border-emerald-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-emerald-600 hover:text-emerald-300' }}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {sorted.map((g, i) => <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined} />)}
+            {sorted.map((g, i) => <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined} recMeta={recMap.get(g.id)} />)}
           </div>
         </>
       )}
@@ -247,9 +266,18 @@ export default function GamesList() {
             </div>
           )}
           {uid && !recsLoading && recs.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              {recs.map((g, i) => <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined} />)}
-            </div>
+            <>
+              <GenreFilters genres={allGenres} selected={selectedGenres}
+                onToggle={g => setSelectedGenres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])}
+                color={{ active: 'bg-emerald-500 border-emerald-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-emerald-600 hover:text-emerald-300' }}
+              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {filteredRecs.map((g: any, i: number) => (
+                  <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined}
+                    recMeta={{ score: g._score, matchedTags: g._matched_tags || [] }} />
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}

@@ -53,7 +53,9 @@ function GenreFilters({ genres, selected, onToggle, color }: {
 }
 
 
-function TrackCard({ t, index, liked, onToggle }: { t: Track; index: number; liked: boolean; onToggle?: (id: number) => void }) {
+interface RecMeta { score: number; matchedTags: string[] }
+
+function TrackCard({ t, index, liked, onToggle, recMeta }: { t: Track; index: number; liked: boolean; onToggle?: (id: number) => void; recMeta?: RecMeta }) {
   const genres = t.genres.length > 0 ? t.genres : t.genre ? [t.genre] : [];
 
   return (
@@ -91,7 +93,14 @@ function TrackCard({ t, index, liked, onToggle }: { t: Track; index: number; lik
 
       <h3 className="text-white text-sm font-semibold leading-tight line-clamp-1 group-hover:text-violet-300 transition-colors">{t.name}</h3>
       <p className="text-zinc-400 text-xs mt-0.5 line-clamp-1">{t.artist}</p>
-      {fmtCompact(t.listeners) && <p className="text-zinc-600 text-xs mt-0.5">{fmtCompact(t.listeners)} listeners</p>}
+      {recMeta ? (
+        <p className="text-xs mt-0.5 flex items-center gap-1.5 flex-wrap">
+          <span className="text-violet-400 font-semibold">✦ {recMeta.score}%</span>
+          {recMeta.matchedTags.map(tag => <span key={tag} className="text-zinc-600">{tag}</span>)}
+        </p>
+      ) : (
+        fmtCompact(t.listeners) && <p className="text-zinc-600 text-xs mt-0.5">{fmtCompact(t.listeners)} listeners</p>
+      )}
     </a>
   );
 }
@@ -147,14 +156,19 @@ export default function TracksList() {
   }
 
   useEffect(() => {
-    if (sortTab !== 'foryou' || !uid || recsLoaded) return;
+    if (!uid || recsLoaded) return;
     setRecsLoading(true);
     fetch(`${API_BASE}/recommendations/${uid}/tracks`)
       .then(r => r.json())
       .then(d => { setRecs(d); setRecsLoaded(true); })
       .catch(() => setRecsLoaded(true))
       .finally(() => setRecsLoading(false));
-  }, [sortTab, uid, recsLoaded]);
+  }, [uid, recsLoaded]);
+
+  const recMap = useMemo(() =>
+    new Map((recs as any[]).map(r => [r.id, { score: r._score, matchedTags: r._matched_tags || [] }])),
+    [recs]
+  );
 
   const allGenres = useMemo(() => {
     const set = new Set<string>();
@@ -188,6 +202,11 @@ export default function TracksList() {
     if (sortTab === 'new')      return [...filtered].sort((a, b) => b.id - a.id);
     return [...filtered].sort((a, b) => (b.listeners || 0) - (a.listeners || 0));
   }, [filtered, sortTab]);
+
+  const filteredRecs = useMemo(() => {
+    if (selectedGenres.length === 0) return recs;
+    return recs.filter((r: any) => (r.genres || []).some((g: string) => selectedGenres.includes(g)));
+  }, [recs, selectedGenres]);
 
   if (loading) return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -249,7 +268,7 @@ export default function TracksList() {
           />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {sorted.map((t, i) => (
-              <TrackCard key={t.id} t={t} index={i} liked={likedIds.has(t.id)} onToggle={uid ? toggleLike : undefined} />
+              <TrackCard key={t.id} t={t} index={i} liked={likedIds.has(t.id)} onToggle={uid ? toggleLike : undefined} recMeta={recMap.get(t.id)} />
             ))}
           </div>
         </>
@@ -280,11 +299,17 @@ export default function TracksList() {
             </div>
           )}
           {uid && !recsLoading && recs.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {recs.map((t, i) => (
-                <TrackCard key={t.id} t={t} index={i} liked={likedIds.has(t.id)} onToggle={uid ? toggleLike : undefined} />
-              ))}
-            </div>
+            <>
+              <GenreFilters genres={allGenres} selected={selectedGenres} onToggle={toggleGenre}
+                color={{ active: 'bg-violet-500 border-violet-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-violet-600 hover:text-violet-300' }}
+              />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {filteredRecs.map((t: any, i: number) => (
+                  <TrackCard key={t.id} t={t} index={i} liked={likedIds.has(t.id)} onToggle={uid ? toggleLike : undefined}
+                    recMeta={{ score: t._score, matchedTags: t._matched_tags || [] }} />
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}

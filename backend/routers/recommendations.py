@@ -8,17 +8,14 @@ router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
 def _build_recommendations(uid: str, item_type: str, items: list, tag_fields: list) -> list:
     conn = get_conn(); cur = conn.cursor()
-    cur.execute(
-        "SELECT item_id FROM likes WHERE user_uid=%s AND item_type=%s",
-        (uid, item_type)
-    )
+    cur.execute("SELECT item_id FROM likes WHERE user_uid=%s AND item_type=%s", (uid, item_type))
     liked_ids = {r["item_id"] for r in cur.fetchall()}
     cur.close(); conn.close()
 
     if not liked_ids:
         return []
 
-    # Build vocabulary from all items
+    # Build vocabulary: tag → index
     vocab: dict[str, int] = {}
     for item in items:
         for field in tag_fields:
@@ -31,8 +28,9 @@ def _build_recommendations(uid: str, item_type: str, items: list, tag_fields: li
         return []
 
     n = len(vocab)
+    idx_to_tag = {v: k for k, v in vocab.items()}
 
-    # User vector: sum of liked items' tag vectors (weighted by frequency)
+    # User taste vector: dimension = tag, value = how many liked items have that tag
     user_vec = np.zeros(n)
     for item in items:
         if item["id"] not in liked_ids:
@@ -44,23 +42,48 @@ def _build_recommendations(uid: str, item_type: str, items: list, tag_fields: li
     if not user_vec.any():
         return []
 
-    # Item matrix: one row per un-liked item
+    # Candidate items (not yet liked)
     candidates = [item for item in items if item["id"] not in liked_ids]
     if not candidates:
         return []
 
+    # Item matrix: one row per candidate, binary tag presence
     item_matrix = np.zeros((len(candidates), n))
     for i, item in enumerate(candidates):
         for field in tag_fields:
             for tag in (item.get(field) or []):
                 item_matrix[i, vocab[tag.lower()]] = 1.0
 
-    # Cosine similarity between user vector and all candidate items
+    # Cosine similarity: user vector vs all candidates
     scores = cosine_similarity(user_vec.reshape(1, -1), item_matrix)[0]
 
-    # Sort by score descending, return top 24
     top_indices = np.argsort(scores)[::-1]
-    return [candidates[i] for i in top_indices if scores[i] > 0][:24]
+    results = []
+    for idx in top_indices:
+        if scores[idx] <= 0 or len(results) >= 24:
+            break
+
+        item = candidates[idx]
+
+        # Matched tags: intersection of user taste and item tags, sorted by user weight
+        item_tag_indices = {
+            vocab[tag.lower()]
+            for field in tag_fields
+            for tag in (item.get(field) or [])
+            if tag.lower() in vocab
+        }
+        matched = sorted(
+            [i for i in item_tag_indices if user_vec[i] > 0],
+            key=lambda i: -user_vec[i]
+        )[:3]
+        matched_tags = [idx_to_tag[i].title() for i in matched]
+
+        result = dict(item)
+        result["_score"] = round(float(scores[idx]) * 100)
+        result["_matched_tags"] = matched_tags
+        results.append(result)
+
+    return results
 
 
 @router.get("/{uid}/tracks")

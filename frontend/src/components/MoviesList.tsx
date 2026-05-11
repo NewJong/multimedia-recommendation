@@ -33,7 +33,9 @@ function GenreFilters({ genres, selected, onToggle, color }: {
   );
 }
 
-function MovieCard({ m, index, liked, onToggle }: { m: Movie; index: number; liked: boolean; onToggle?: (id: number) => void }) {
+interface RecMeta { score: number; matchedTags: string[] }
+
+function MovieCard({ m, index, liked, onToggle, recMeta }: { m: Movie; index: number; liked: boolean; onToggle?: (id: number) => void; recMeta?: RecMeta }) {
   return (
     <a href={`/movies/${m.id}`} className="group relative block"
       style={{ animation: 'card-in 0.35s ease both', animationDelay: `${Math.min(index * 30, 600)}ms`, textDecoration: 'none' }}>
@@ -70,6 +72,12 @@ function MovieCard({ m, index, liked, onToggle }: { m: Movie; index: number; lik
       )}
       <h3 className="text-white text-sm font-semibold leading-tight line-clamp-1 group-hover:text-rose-300 transition-colors">{m.title}</h3>
       <p className="text-zinc-500 text-xs mt-0.5">{m.release_year || '—'}</p>
+      {recMeta ? (
+        <p className="text-xs mt-0.5 flex items-center gap-1.5 flex-wrap">
+          <span className="text-rose-400 font-semibold">✦ {recMeta.score}%</span>
+          {recMeta.matchedTags.map(tag => <span key={tag} className="text-zinc-600">{tag}</span>)}
+        </p>
+      ) : null}
     </a>
   );
 }
@@ -123,12 +131,17 @@ export default function MoviesList() {
   }
 
   useEffect(() => {
-    if (sortTab !== 'foryou' || !uid || recsLoaded) return;
+    if (!uid || recsLoaded) return;
     setRecsLoading(true);
     fetch(`${API_BASE}/recommendations/${uid}/movies`)
       .then(r => r.json()).then(d => { setRecs(d); setRecsLoaded(true); })
       .catch(() => setRecsLoaded(true)).finally(() => setRecsLoading(false));
-  }, [sortTab, uid, recsLoaded]);
+  }, [uid, recsLoaded]);
+
+  const recMap = useMemo(() =>
+    new Map((recs as any[]).map(r => [r.id, { score: r._score, matchedTags: r._matched_tags || [] }])),
+    [recs]
+  );
 
   const allGenres = useMemo(() => {
     const set = new Set<string>();
@@ -151,6 +164,11 @@ export default function MoviesList() {
     if (sortTab === 'new')      return [...filtered].sort((a, b) => (b.release_year || 0) - (a.release_year || 0));
     return [...filtered].sort((a, b) => (b.popularity || 0) - (a.popularity || 0));
   }, [filtered, sortTab]);
+
+  const filteredRecs = useMemo(() => {
+    if (selectedGenres.length === 0) return recs;
+    return recs.filter((r: any) => (r.genres || []).some((g: string) => selectedGenres.includes(g)));
+  }, [recs, selectedGenres]);
 
   if (loading) return (
     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -200,7 +218,7 @@ export default function MoviesList() {
             color={{ active: 'bg-rose-500 border-rose-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-rose-600 hover:text-rose-300' }}
           />
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {sorted.map((m, i) => <MovieCard key={m.id} m={m} index={i} liked={likedIds.has(m.id)} onToggle={uid ? toggleLike : undefined} />)}
+            {sorted.map((m, i) => <MovieCard key={m.id} m={m} index={i} liked={likedIds.has(m.id)} onToggle={uid ? toggleLike : undefined} recMeta={recMap.get(m.id)} />)}
           </div>
         </>
       )}
@@ -226,9 +244,18 @@ export default function MoviesList() {
             </div>
           )}
           {uid && !recsLoading && recs.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-              {recs.map((m, i) => <MovieCard key={m.id} m={m} index={i} liked={likedIds.has(m.id)} onToggle={uid ? toggleLike : undefined} />)}
-            </div>
+            <>
+              <GenreFilters genres={allGenres} selected={selectedGenres}
+                onToggle={g => setSelectedGenres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])}
+                color={{ active: 'bg-rose-500 border-rose-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-rose-600 hover:text-rose-300' }}
+              />
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                {filteredRecs.map((m: any, i: number) => (
+                  <MovieCard key={m.id} m={m} index={i} liked={likedIds.has(m.id)} onToggle={uid ? toggleLike : undefined}
+                    recMeta={{ score: m._score, matchedTags: m._matched_tags || [] }} />
+                ))}
+              </div>
+            </>
           )}
         </div>
       )}
