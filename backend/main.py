@@ -67,6 +67,7 @@ class UserSync(BaseModel):
     uid: str
     email: str
     name: str | None = None
+    photo_url: str | None = None
 
 
 @app.get("/")
@@ -79,19 +80,132 @@ def sync_user(body: UserSync):
     conn = get_conn()
     cur = conn.cursor()
     cur.execute("""
-        INSERT INTO users (firebase_uid, email, name)
-        VALUES (%s, %s, %s)
+        INSERT INTO users (firebase_uid, email, name, photo_url)
+        VALUES (%s, %s, %s, %s)
         ON CONFLICT (firebase_uid) DO UPDATE
-            SET email = EXCLUDED.email,
-                name  = EXCLUDED.name
-        RETURNING id, firebase_uid, email, name, created_at
-    """, (body.uid, body.email, body.name))
+            SET email     = EXCLUDED.email,
+                name      = EXCLUDED.name,
+                photo_url = EXCLUDED.photo_url
+        RETURNING id, firebase_uid, email, name, photo_url, created_at
+    """, (body.uid, body.email, body.name, body.photo_url))
     row = dict(cur.fetchone())
     conn.commit()
     cur.close(); conn.close()
     if isinstance(row.get("created_at"), datetime):
         row["created_at"] = row["created_at"].isoformat()
     return row
+
+
+@app.get("/users/search")
+def search_users(q: str = Query(..., min_length=1)):
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("""
+        SELECT firebase_uid, name, email, photo_url FROM users
+        WHERE name ILIKE %s OR email ILIKE %s LIMIT 20
+    """, (f"%{q}%", f"%{q}%"))
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close(); conn.close()
+    return rows
+
+
+@app.get("/users/{uid}")
+def get_user(uid: str):
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("SELECT firebase_uid, name, email, photo_url FROM users WHERE firebase_uid = %s", (uid,))
+    row = cur.fetchone()
+    cur.close(); conn.close()
+    if not row:
+        raise HTTPException(status_code=404, detail="User not found")
+    return dict(row)
+
+
+# ── Friends ────────────────────────────────────────────────────────────────
+
+@app.get("/friends/{uid}/status/{other_uid}")
+def friend_status(uid: str, other_uid: str):
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("""
+        SELECT from_uid, status FROM friend_requests
+        WHERE (from_uid=%s AND to_uid=%s) OR (from_uid=%s AND to_uid=%s)
+    """, (uid, other_uid, other_uid, uid))
+    row = cur.fetchone()
+    cur.close(); conn.close()
+    if not row:
+        return {"status": "none"}
+    if row["status"] == "accepted":
+        return {"status": "friends"}
+    return {"status": "pending_sent" if row["from_uid"] == uid else "pending_received"}
+
+
+@app.get("/friends/{uid}/requests")
+def get_friend_requests(uid: str):
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("""
+        SELECT u.firebase_uid, u.name, u.email, u.photo_url, fr.created_at
+        FROM friend_requests fr
+        JOIN users u ON fr.from_uid = u.firebase_uid
+        WHERE fr.to_uid = %s AND fr.status = 'pending'
+        ORDER BY fr.created_at DESC
+    """, (uid,))
+    result = []
+    for r in cur.fetchall():
+        row = dict(r)
+        if isinstance(row.get("created_at"), datetime):
+            row["created_at"] = row["created_at"].isoformat()
+        result.append(row)
+    cur.close(); conn.close()
+    return result
+
+
+@app.get("/friends/{uid}")
+def get_friends(uid: str):
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("""
+        SELECT u.firebase_uid, u.name, u.email, u.photo_url
+        FROM friend_requests fr
+        JOIN users u ON (
+            CASE WHEN fr.from_uid = %s THEN fr.to_uid ELSE fr.from_uid END = u.firebase_uid
+        )
+        WHERE (fr.from_uid = %s OR fr.to_uid = %s) AND fr.status = 'accepted'
+    """, (uid, uid, uid))
+    rows = [dict(r) for r in cur.fetchall()]
+    cur.close(); conn.close()
+    return rows
+
+
+@app.post("/friends/{uid}/request/{to_uid}")
+def send_request(uid: str, to_uid: str):
+    if uid == to_uid:
+        raise HTTPException(status_code=400, detail="Cannot add yourself")
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("""
+        INSERT INTO friend_requests (from_uid, to_uid)
+        VALUES (%s, %s) ON CONFLICT DO NOTHING
+    """, (uid, to_uid))
+    conn.commit(); cur.close(); conn.close()
+    return {"status": "pending_sent"}
+
+
+@app.post("/friends/{uid}/accept/{from_uid}")
+def accept_request(uid: str, from_uid: str):
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("""
+        UPDATE friend_requests SET status = 'accepted'
+        WHERE from_uid = %s AND to_uid = %s AND status = 'pending'
+    """, (from_uid, uid))
+    conn.commit(); cur.close(); conn.close()
+    return {"status": "friends"}
+
+
+@app.delete("/friends/{uid}/{other_uid}")
+def remove_friend(uid: str, other_uid: str):
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("""
+        DELETE FROM friend_requests
+        WHERE (from_uid=%s AND to_uid=%s) OR (from_uid=%s AND to_uid=%s)
+    """, (uid, other_uid, other_uid, uid))
+    conn.commit(); cur.close(); conn.close()
+    return {"status": "none"}
 
 
 def _query(key: str, sql: str):

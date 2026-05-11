@@ -4,12 +4,22 @@ import type { User } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 
 interface Likes { tracks: any[]; movies: any[]; games: any[] }
-type Tab = 'music' | 'movies' | 'games';
+type Tab = 'music' | 'movies' | 'games' | 'friends';
+
+interface FriendUser { firebase_uid: string; name: string; email: string; photo_url: string | null }
+
+function UserAvatar({ u, size = 'sm' }: { u: FriendUser; size?: 'sm' | 'md' }) {
+  const sz = size === 'md' ? 'w-10 h-10 text-base' : 'w-8 h-8 text-sm';
+  return u.photo_url
+    ? <img src={u.photo_url} alt={u.name} referrerPolicy="no-referrer" className={`${sz} rounded-full object-cover flex-shrink-0`} />
+    : <div className={`${sz} rounded-full bg-zinc-700 flex items-center justify-center font-semibold text-zinc-300 flex-shrink-0`}>{u.name?.[0] ?? '?'}</div>;
+}
 
 const TABS: { key: Tab; label: string; active: string; dot: string }[] = [
-  { key: 'music',  label: 'Music',  active: 'text-violet-300 bg-violet-500/12 border-violet-500/30',   dot: 'bg-violet-400' },
-  { key: 'movies', label: 'Movies', active: 'text-rose-300 bg-rose-500/12 border-rose-500/30',         dot: 'bg-rose-400' },
-  { key: 'games',  label: 'Games',  active: 'text-emerald-300 bg-emerald-500/12 border-emerald-500/30', dot: 'bg-emerald-400' },
+  { key: 'music',   label: 'Music',   active: 'text-violet-300 bg-violet-500/12 border-violet-500/30',   dot: 'bg-violet-400' },
+  { key: 'movies',  label: 'Movies',  active: 'text-rose-300 bg-rose-500/12 border-rose-500/30',         dot: 'bg-rose-400' },
+  { key: 'games',   label: 'Games',   active: 'text-emerald-300 bg-emerald-500/12 border-emerald-500/30', dot: 'bg-emerald-400' },
+  { key: 'friends', label: 'Friends', active: 'text-sky-300 bg-sky-500/12 border-sky-500/30',            dot: 'bg-sky-400' },
 ];
 
 const HeartFilled = ({ cls }: { cls: string }) => (
@@ -131,6 +141,10 @@ export default function ProfilePage() {
   const [likes, setLikes]             = useState<Likes>({ tracks: [], movies: [], games: [] });
   const [likesLoading, setLikesLoading] = useState(false);
   const [tab, setTab]                 = useState<Tab>('music');
+  const [friends, setFriends]         = useState<FriendUser[]>([]);
+  const [requests, setRequests]       = useState<FriendUser[]>([]);
+  const [search, setSearch]           = useState('');
+  const [searchResults, setSearchRes] = useState<FriendUser[]>([]);
 
   useEffect(() => {
     return onAuthStateChanged(auth, async u => {
@@ -147,6 +161,14 @@ export default function ProfilePage() {
           else if (data.games.length)  setTab('games');
         } catch {}
         setLikesLoading(false);
+        // load friends data
+        Promise.all([
+          fetch(`http://localhost:8000/friends/${u.uid}`).then(r => r.json()),
+          fetch(`http://localhost:8000/friends/${u.uid}/requests`).then(r => r.json()),
+        ]).then(([f, rq]) => {
+          setFriends(f ?? []);
+          setRequests(rq ?? []);
+        }).catch(() => {});
       }
     });
   }, []);
@@ -189,6 +211,36 @@ export default function ProfilePage() {
   const counts = { music: likes.tracks.length, movies: likes.movies.length, games: likes.games.length };
   const total  = counts.music + counts.movies + counts.games;
 
+  async function doSearch(q: string) {
+    setSearch(q);
+    if (q.length < 2) { setSearchRes([]); return; }
+    try {
+      const r = await fetch(`http://localhost:8000/users/search?q=${encodeURIComponent(q)}`);
+      const data = await r.json();
+      setSearchRes(data.filter((u: FriendUser) => u.firebase_uid !== user?.uid));
+    } catch {}
+  }
+
+  async function acceptReq(fromUid: string) {
+    if (!user) return;
+    await fetch(`http://localhost:8000/friends/${user.uid}/accept/${fromUid}`, { method: 'POST' }).catch(() => {});
+    const accepted = requests.find(r => r.firebase_uid === fromUid);
+    setRequests(prev => prev.filter(r => r.firebase_uid !== fromUid));
+    if (accepted) setFriends(prev => [...prev, accepted]);
+  }
+
+  async function rejectReq(fromUid: string) {
+    if (!user) return;
+    await fetch(`http://localhost:8000/friends/${user.uid}/${fromUid}`, { method: 'DELETE' }).catch(() => {});
+    setRequests(prev => prev.filter(r => r.firebase_uid !== fromUid));
+  }
+
+  async function removeFriend(friendUid: string) {
+    if (!user) return;
+    await fetch(`http://localhost:8000/friends/${user.uid}/${friendUid}`, { method: 'DELETE' }).catch(() => {});
+    setFriends(prev => prev.filter(f => f.firebase_uid !== friendUid));
+  }
+
   return (
     <div className="max-w-4xl mx-auto px-6 pt-8 pb-16">
 
@@ -221,11 +273,10 @@ export default function ProfilePage() {
               <span className={`absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full ${t.dot}`} />
             )}
             {t.label}
-            {counts[t.key] > 0 && (
-              <span className={`text-xs px-1.5 py-0.5 rounded-md ${tab === t.key ? 'bg-white/10' : 'bg-zinc-800 text-zinc-500'}`}>
-                {counts[t.key]}
-              </span>
-            )}
+            {(() => {
+              const n = t.key === 'friends' ? requests.length : counts[t.key as keyof typeof counts] ?? 0;
+              return n > 0 ? <span className={`text-xs px-1.5 py-0.5 rounded-md ${tab === t.key ? 'bg-white/10' : 'bg-zinc-800 text-zinc-500'}`}>{n}</span> : null;
+            })()}
           </button>
         ))}
       </div>
@@ -279,6 +330,91 @@ export default function ProfilePage() {
           : <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
               {likes.games.map((g: any) => <GameCard key={g.id} g={g} onUnlike={id => unlike('game', id)} />)}
             </div>
+      )}
+
+      {/* Friends tab */}
+      {tab === 'friends' && (
+        <div className="space-y-8">
+
+          {/* User search */}
+          <div>
+            <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Find people</p>
+            <input
+              type="text"
+              placeholder="Search by name or email…"
+              value={search}
+              onChange={e => doSearch(e.target.value)}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-sky-500 transition-colors"
+            />
+            {searchResults.length > 0 && (
+              <div className="mt-2 space-y-1">
+                {searchResults.map(u => (
+                  <a key={u.firebase_uid} href={`/profile/${u.firebase_uid}`}
+                    className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-sky-500/40 hover:bg-sky-500/5 transition-all">
+                    <UserAvatar u={u} size="md" />
+                    <div className="min-w-0">
+                      <p className="text-white text-sm font-medium truncate">{u.name}</p>
+                      <p className="text-zinc-500 text-xs truncate">{u.email}</p>
+                    </div>
+                  </a>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Incoming requests */}
+          {requests.length > 0 && (
+            <div>
+              <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Incoming requests · {requests.length}</p>
+              <div className="space-y-2">
+                {requests.map(u => (
+                  <div key={u.firebase_uid} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800">
+                    <a href={`/profile/${u.firebase_uid}`} className="flex items-center gap-3 flex-1 min-w-0 hover:opacity-80 transition-opacity">
+                      <UserAvatar u={u} size="md" />
+                      <p className="text-white text-sm font-medium truncate">{u.name}</p>
+                    </a>
+                    <div className="flex gap-2 flex-shrink-0">
+                      <button onClick={() => acceptReq(u.firebase_uid)}
+                        className="px-3 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/30 text-sky-300 text-xs font-medium transition-all">
+                        Accept
+                      </button>
+                      <button onClick={() => rejectReq(u.firebase_uid)}
+                        className="px-3 py-1.5 rounded-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-400 text-xs font-medium transition-all">
+                        Reject
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Friends list */}
+          <div>
+            <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Friends · {friends.length}</p>
+            {friends.length === 0
+              ? <p className="text-zinc-600 text-sm text-center py-8">No friends yet — search for people above</p>
+              : <div className="space-y-2">
+                  {friends.map(u => (
+                    <div key={u.firebase_uid} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-sky-500/30 transition-colors group">
+                      <a href={`/profile/${u.firebase_uid}`} className="flex items-center gap-3 flex-1 min-w-0">
+                        <UserAvatar u={u} size="md" />
+                        <div className="min-w-0">
+                          <p className="text-white text-sm font-medium truncate group-hover:text-sky-200 transition-colors">{u.name}</p>
+                          <p className="text-zinc-500 text-xs truncate">{u.email}</p>
+                        </div>
+                      </a>
+                      <button onClick={() => removeFriend(u.firebase_uid)}
+                        className="flex-shrink-0 px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-500 hover:text-red-400 text-xs transition-all">
+                        Remove
+                      </button>
+                    </div>
+                  ))}
+                </div>
+            }
+          </div>
+
+        </div>
       )}
 
     </div>

@@ -1,0 +1,10 @@
+---
+export const prerender = false;
+import Layout from '../../layouts/Layout.astro';
+import PublicProfilePage from '../../components/PublicProfilePage';
+const { uid } = Astro.params;
+---
+
+<Layout title="Profile — TIOKhor">
+  <PublicProfilePage uid={uid!} client:load />
+</Layout>

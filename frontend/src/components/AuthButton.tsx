@@ -50,7 +50,7 @@ export default function AuthButton() {
         fetch('http://localhost:8000/users/sync', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ uid: u.uid, email: u.email, name: u.displayName }),
+          body: JSON.stringify({ uid: u.uid, email: u.email, name: u.displayName, photo_url: u.photoURL }),
         }).catch(() => {});
       }
     });
