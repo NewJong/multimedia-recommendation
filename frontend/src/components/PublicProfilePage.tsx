@@ -222,7 +222,7 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                       <p className="text-xs text-zinc-500 mb-1.5">Your vibe</p>
                       <div className="flex flex-wrap gap-1">
                         {compare.tags1.map(t => (
-                          <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300">{t}</span>
+                          <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">{t}</span>
                         ))}
                       </div>
                     </div>
