@@ -102,6 +102,108 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
         </div>
       </div>
 
+      {/* Taste comparison — between header and tabs */}
+      {myUid && myUid !== uid && (
+        <div className="mb-8">
+          {!compare && !compareLoading && (
+            <button
+              onClick={loadComparison}
+              className="w-full group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-5 text-left transition-all duration-200 hover:border-zinc-600 hover:bg-zinc-900/70"
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-zinc-400 group-hover:text-zinc-200 transition-colors">
+                    ✦ Compare tastes
+                  </p>
+                  <p className="text-xs text-zinc-600 mt-0.5">
+                    Click to see how your taste matches {user.name.split(' ')[0]}'s — powered by AI
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0 ml-4">
+                  {['◆','◇','◆'].map((s, i) => (
+                    <span key={i} className="text-zinc-700 group-hover:text-zinc-500 transition-colors text-xs">{s}</span>
+                  ))}
+                </div>
+              </div>
+              <div className="mt-4 select-none pointer-events-none">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="text-3xl font-bold text-zinc-700 blur-sm">87%</div>
+                  <div className="h-2 flex-1 rounded-full bg-zinc-800 overflow-hidden">
+                    <div className="h-full w-3/4 rounded-full bg-zinc-700 blur-sm" />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <div className="h-3 bg-zinc-800 rounded blur-sm opacity-60" style={{ width: '90%' }} />
+                  <div className="h-3 bg-zinc-800 rounded blur-sm opacity-60" style={{ width: '70%' }} />
+                </div>
+              </div>
+            </button>
+          )}
+
+          {compareLoading && (
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-5">
+              <p className="text-sm text-zinc-500 mb-4">Analysing your tastes…</p>
+              <div className="space-y-2 animate-pulse">
+                <div className="h-3 bg-zinc-800 rounded w-full" />
+                <div className="h-3 bg-zinc-800 rounded w-5/6" />
+                <div className="h-3 bg-zinc-800 rounded w-3/4" />
+              </div>
+            </div>
+          )}
+
+          {compareError && !compareLoading && (
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-5 flex items-center justify-between">
+              <p className="text-sm text-zinc-500">Couldn't load comparison.</p>
+              <button onClick={loadComparison} className="text-xs text-zinc-400 hover:text-white underline">Retry</button>
+            </div>
+          )}
+
+          {compare && (
+            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <span className={`text-3xl font-bold ${compare.compatibility >= 70 ? 'text-emerald-400' : compare.compatibility >= 40 ? 'text-yellow-400' : 'text-zinc-400'}`}>
+                  {compare.compatibility}%
+                </span>
+                <div className="flex-1 h-2 rounded-full bg-zinc-800 overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-700 ${compare.compatibility >= 70 ? 'bg-emerald-500' : compare.compatibility >= 40 ? 'bg-yellow-500' : 'bg-zinc-500'}`}
+                    style={{ width: `${compare.compatibility}%` }}
+                  />
+                </div>
+                <span className="text-xs text-zinc-500 flex-shrink-0">compatibility</span>
+              </div>
+              <p className="text-sm text-zinc-300 leading-relaxed">{compare.insight}</p>
+              {(compare.common.games.length > 0 || compare.common.movies.length > 0 || compare.common.tracks.length > 0) && (
+                <div>
+                  <p className="text-xs text-zinc-500 mb-2">Both liked</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[...compare.common.games, ...compare.common.movies, ...compare.common.tracks].map(name => (
+                      <span key={name} className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">{name}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {(compare.tags1.length > 0 || compare.tags2.length > 0) && (
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1.5">Your vibe</p>
+                    <div className="flex flex-wrap gap-1">
+                      {compare.tags1.map(t => <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300">{t}</span>)}
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-zinc-500 mb-1.5">{user.name.split(' ')[0]}'s vibe</p>
+                    <div className="flex flex-wrap gap-1">
+                      {compare.tags2.map(t => <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300">{t}</span>)}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex justify-center gap-2 mb-8">
         {tabs.map(t => (
@@ -158,120 +260,6 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
               <p className="text-xs text-zinc-500">{g.release_year || ''}</p>
             </a>
           ))}
-        </div>
-      )}
-      {/* Taste comparison — only shown when logged in and viewing someone else */}
-      {myUid && myUid !== uid && (
-        <div className="mt-10">
-          {/* Placeholder — click to reveal */}
-          {!compare && !compareLoading && (
-            <button
-              onClick={loadComparison}
-              className="w-full group relative overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-5 text-left transition-all duration-200 hover:border-zinc-600 hover:bg-zinc-900/70"
-            >
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-zinc-400 group-hover:text-zinc-200 transition-colors">
-                    ✦ Compare tastes
-                  </p>
-                  <p className="text-xs text-zinc-600 mt-0.5">
-                    Click to see how your taste matches {user?.name?.split(' ')[0] ?? 'this user'}'s — powered by AI
-                  </p>
-                </div>
-                <div className="flex items-center gap-1.5 flex-shrink-0 ml-4">
-                  {['◆','◇','◆'].map((s, i) => (
-                    <span key={i} className={`text-zinc-700 group-hover:text-zinc-500 transition-colors text-xs`}>{s}</span>
-                  ))}
-                </div>
-              </div>
-              {/* Blurred fake content */}
-              <div className="mt-4 select-none pointer-events-none">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="text-3xl font-bold text-zinc-700 blur-sm">87%</div>
-                  <div className="h-2 flex-1 rounded-full bg-zinc-800 overflow-hidden">
-                    <div className="h-full w-3/4 rounded-full bg-zinc-700 blur-sm" />
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  {['████████████ ████ ██████████ ████████.', '████ ████████ ██████ ███ ██████████ ███.'].map((line, i) => (
-                    <div key={i} className="h-3 bg-zinc-800 rounded blur-sm opacity-60" style={{ width: i === 0 ? '90%' : '70%' }} />
-                  ))}
-                </div>
-              </div>
-            </button>
-          )}
-
-          {/* Loading */}
-          {compareLoading && (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-5">
-              <p className="text-sm text-zinc-500 mb-4">Analysing your tastes…</p>
-              <div className="space-y-2 animate-pulse">
-                <div className="h-3 bg-zinc-800 rounded w-full" />
-                <div className="h-3 bg-zinc-800 rounded w-5/6" />
-                <div className="h-3 bg-zinc-800 rounded w-3/4" />
-              </div>
-            </div>
-          )}
-
-          {/* Error */}
-          {compareError && !compareLoading && (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-5 flex items-center justify-between">
-              <p className="text-sm text-zinc-500">Couldn't load comparison.</p>
-              <button onClick={loadComparison} className="text-xs text-zinc-400 hover:text-white underline">Retry</button>
-            </div>
-          )}
-
-          {/* Result */}
-          {compare && (
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900/40 px-6 py-5 space-y-4">
-              {/* Score bar */}
-              <div className="flex items-center gap-3">
-                <span className={`text-3xl font-bold ${compare.compatibility >= 70 ? 'text-emerald-400' : compare.compatibility >= 40 ? 'text-yellow-400' : 'text-zinc-400'}`}>
-                  {compare.compatibility}%
-                </span>
-                <div className="flex-1 h-2 rounded-full bg-zinc-800 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all duration-700 ${compare.compatibility >= 70 ? 'bg-emerald-500' : compare.compatibility >= 40 ? 'bg-yellow-500' : 'bg-zinc-500'}`}
-                    style={{ width: `${compare.compatibility}%` }}
-                  />
-                </div>
-                <span className="text-xs text-zinc-500 flex-shrink-0">compatibility</span>
-              </div>
-
-              {/* AI text */}
-              <p className="text-sm text-zinc-300 leading-relaxed">{compare.insight}</p>
-
-              {/* Common items */}
-              {(compare.common.games.length > 0 || compare.common.movies.length > 0 || compare.common.tracks.length > 0) && (
-                <div>
-                  <p className="text-xs text-zinc-500 mb-2">Both liked</p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[...compare.common.games, ...compare.common.movies, ...compare.common.tracks].map(name => (
-                      <span key={name} className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">{name}</span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Tag comparison */}
-              {(compare.tags1.length > 0 || compare.tags2.length > 0) && (
-                <div className="grid grid-cols-2 gap-3 pt-1">
-                  <div>
-                    <p className="text-xs text-zinc-500 mb-1.5">Your vibe</p>
-                    <div className="flex flex-wrap gap-1">
-                      {compare.tags1.map(t => <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300">{t}</span>)}
-                    </div>
-                  </div>
-                  <div>
-                    <p className="text-xs text-zinc-500 mb-1.5">{user?.name?.split(' ')[0]}'s vibe</p>
-                    <div className="flex flex-wrap gap-1">
-                      {compare.tags2.map(t => <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300">{t}</span>)}
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
         </div>
       )}
     </div>
