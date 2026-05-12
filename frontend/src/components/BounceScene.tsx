@@ -69,9 +69,11 @@ export default function BounceScene() {
       const topGames  = [...(games  as any[])].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).slice(0, 10);
 
       const list: Dot[] = [];
-      topTracks.forEach(t => list.push(place('music', t.name,  (t.genres?.[0] ?? ''), t.image_url,  `/music/${t.id}`,  list.length)));
-      topMovies.forEach(m => list.push(place('movie', m.title, (m.genres?.[0] ?? ''), m.poster_url, `/movies/${m.id}`, list.length)));
-      topGames .forEach(g => list.push(place('game',  g.title, (g.genres?.[0] ?? ''), g.poster_url, `/games/${g.id}`,  list.length)));
+      const pickGenre = (gens: string[] | undefined) =>
+        (gens && gens[0] === 'Action' && gens[1]) ? gens[1] : (gens?.[0] ?? '');
+      topTracks.forEach(t => list.push(place('music', t.name,  pickGenre(t.genres), t.image_url,  `/music/${t.id}`,  list.length)));
+      topMovies.forEach(m => list.push(place('movie', m.title, pickGenre(m.genres), m.poster_url, `/movies/${m.id}`, list.length)));
+      topGames .forEach(g => list.push(place('game',  g.title, pickGenre(g.genres), g.poster_url, `/games/${g.id}`,  list.length)));
 
       dots.current   = list;
       elRefs.current = new Array(list.length).fill(null);

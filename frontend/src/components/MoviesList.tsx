@@ -128,6 +128,7 @@ export default function MoviesList() {
     setLikedIds(prev => { const n = new Set(prev); was ? n.delete(movieId) : n.add(movieId); return n; });
     try {
       await fetch(`${API_BASE}/likes/${uid}/movie/${movieId}`, { method: 'POST' });
+      setRecsLoaded(false);
     } catch {
       setLikedIds(prev => { const n = new Set(prev); was ? n.add(movieId) : n.delete(movieId); return n; });
     }

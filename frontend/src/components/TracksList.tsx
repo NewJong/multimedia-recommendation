@@ -152,6 +152,7 @@ export default function TracksList() {
     setLikedIds(prev => { const n = new Set(prev); was ? n.delete(trackId) : n.add(trackId); return n; });
     try {
       await fetch(`${API_BASE}/likes/${uid}/track/${trackId}`, { method: 'POST' });
+      setRecsLoaded(false);
     } catch {
       setLikedIds(prev => { const n = new Set(prev); was ? n.add(trackId) : n.delete(trackId); return n; });
     }

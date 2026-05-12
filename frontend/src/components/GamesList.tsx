@@ -149,6 +149,7 @@ export default function GamesList() {
     setLikedIds(prev => { const n = new Set(prev); was ? n.delete(gameId) : n.add(gameId); return n; });
     try {
       await fetch(`${API_BASE}/likes/${uid}/game/${gameId}`, { method: 'POST' });
+      setRecsLoaded(false);
     } catch {
       setLikedIds(prev => { const n = new Set(prev); was ? n.add(gameId) : n.delete(gameId); return n; });
     }
