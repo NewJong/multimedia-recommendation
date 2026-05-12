@@ -279,8 +279,14 @@ export default function ProfilePage() {
             )}
             {t.label}
             {(() => {
-              const n = t.key === 'friends' ? requests.length : counts[t.key as keyof typeof counts] ?? 0;
-              return n > 0 ? <span className={`text-xs px-1.5 py-0.5 rounded-md ${tab === t.key ? 'bg-white/10' : 'bg-zinc-800 text-zinc-500'}`}>{n}</span> : null;
+              const n = t.key === 'friends' ? friends.length : counts[t.key as keyof typeof counts] ?? 0;
+              const badge = n > 0
+                ? <span className={`text-xs px-1.5 py-0.5 rounded-md ${tab === t.key ? 'bg-white/10' : 'bg-zinc-800 text-zinc-500'}`}>{n}</span>
+                : null;
+              const reqBadge = t.key === 'friends' && requests.length > 0
+                ? <span className="text-xs px-1.5 py-0.5 rounded-md bg-sky-500/20 text-sky-300">{requests.length}</span>
+                : null;
+              return <>{badge}{reqBadge}</>;
             })()}
           </button>
         ))}
