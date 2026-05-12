@@ -71,10 +71,10 @@ export default function AuthButton() {
   return (
     <div className="relative" ref={dropdownRef}>
       <div className="flex items-center gap-2.5">
-        <div className="hidden sm:block text-right">
+        <a href="/profile" className="hidden sm:block text-right group">
           <p className="text-xs text-zinc-500 leading-none mb-0.5">{greeting()}</p>
-          <p className="text-sm font-medium text-zinc-200 leading-none">{firstName}</p>
-        </div>
+          <p className="text-sm font-medium text-zinc-200 leading-none group-hover:text-white transition-colors">{firstName}</p>
+        </a>
         <Avatar user={user} onClick={() => setOpen(v => !v)} />
       </div>
 
