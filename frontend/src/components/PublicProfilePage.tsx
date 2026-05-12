@@ -12,10 +12,13 @@ interface UserInfo {
 interface Likes    { tracks: any[]; movies: any[]; games: any[] }
 type Tab = 'music' | 'movies' | 'games';
 
+interface CompareItem { id: number; title: string }
 interface CompareResult {
   insight: string;
   compatibility: number;
-  common: { games: string[]; movies: string[]; tracks: string[] };
+  name1: string;
+  name2: string;
+  common: { games: CompareItem[]; movies: CompareItem[]; tracks: CompareItem[] };
   tags1: string[];
   tags2: string[];
 }
@@ -166,26 +169,63 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                   <span className="text-xs text-zinc-600 flex-shrink-0">compatibility</span>
                 </div>
                 <p className="text-sm text-zinc-300 leading-relaxed">{compare.insight}</p>
+
+                {/* Both liked — by category with links */}
                 {(compare.common.games.length + compare.common.movies.length + compare.common.tracks.length) > 0 && (
-                  <div className="flex flex-wrap gap-1.5">
-                    <span className="text-xs text-zinc-600 self-center">Both liked:</span>
-                    {[...compare.common.games, ...compare.common.movies, ...compare.common.tracks].map(name => (
-                      <span key={name} className="text-xs px-2 py-0.5 rounded-full bg-zinc-800 border border-zinc-700 text-zinc-300">{name}</span>
-                    ))}
+                  <div className="space-y-2">
+                    {compare.common.games.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-zinc-600 w-12 flex-shrink-0">🎮 Games</span>
+                        {compare.common.games.map(item => (
+                          <a key={item.id} href={`/games/${item.id}`}
+                            className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/20 transition-colors">
+                            {item.title}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {compare.common.movies.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-zinc-600 w-12 flex-shrink-0">🎬 Films</span>
+                        {compare.common.movies.map(item => (
+                          <a key={item.id} href={`/movies/${item.id}`}
+                            className="text-xs px-2 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:bg-rose-500/20 transition-colors">
+                            {item.title}
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    {compare.common.tracks.length > 0 && (
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-xs text-zinc-600 w-12 flex-shrink-0">🎵 Music</span>
+                        {compare.common.tracks.map(item => (
+                          <a key={item.id} href={`/music/${item.id}`}
+                            className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/20 transition-colors">
+                            {item.title}
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
+
+                {/* Taste tags — your vibe vs their vibe */}
                 {(compare.tags1.length > 0 || compare.tags2.length > 0) && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-zinc-800">
                     <div>
-                      <p className="text-xs text-zinc-600 mb-1">Your vibe</p>
+                      <p className="text-xs text-zinc-500 mb-1.5">Your vibe</p>
                       <div className="flex flex-wrap gap-1">
-                        {compare.tags1.map(t => <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300">{t}</span>)}
+                        {compare.tags1.map(t => (
+                          <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-violet-300">{t}</span>
+                        ))}
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-600 mb-1">{user.name.split(' ')[0]}'s vibe</p>
+                      <p className="text-xs text-zinc-500 mb-1.5">{compare.name2}'s vibe</p>
                       <div className="flex flex-wrap gap-1">
-                        {compare.tags2.map(t => <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300">{t}</span>)}
+                        {compare.tags2.map(t => (
+                          <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300">{t}</span>
+                        ))}
                       </div>
                     </div>
                   </div>

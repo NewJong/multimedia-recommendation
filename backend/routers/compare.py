@@ -19,6 +19,14 @@ def _likes_by_type(uid: str) -> dict[str, set[int]]:
     return result
 
 
+def _get_name(uid: str) -> str:
+    conn = get_conn(); cur = conn.cursor()
+    cur.execute("SELECT name FROM users WHERE firebase_uid=%s", (uid,))
+    row = cur.fetchone()
+    cur.close(); conn.close()
+    return (row["name"] if row else "Unknown").split()[0]  # first name only
+
+
 def _top_tags(likes: dict[str, set[int]], games, movies, tracks, n=8) -> list[str]:
     w: dict[str, float] = {}
     for g in games:
@@ -60,11 +68,13 @@ def get_insight(uid1: str, uid2: str):
 
     likes1 = _likes_by_type(uid1)
     likes2 = _likes_by_type(uid2)
+    name1  = _get_name(uid1)
+    name2  = _get_name(uid2)
 
-    # Common liked items (up to 5 per domain for display)
-    common_games  = [g["title"] for g in games  if g["id"] in likes1["game"]  & likes2["game"]][:5]
-    common_movies = [m["title"] for m in movies if m["id"] in likes1["movie"] & likes2["movie"]][:5]
-    common_tracks = [t["name"]  for t in tracks if t["id"] in likes1["track"] & likes2["track"]][:5]
+    # Common liked items with IDs for frontend links
+    common_games  = [{"id": g["id"], "title": g["title"]} for g in games  if g["id"] in likes1["game"]  & likes2["game"]][:6]
+    common_movies = [{"id": m["id"], "title": m["title"]} for m in movies if m["id"] in likes1["movie"] & likes2["movie"]][:6]
+    common_tracks = [{"id": t["id"], "title": t["name"]}  for t in tracks if t["id"] in likes1["track"] & likes2["track"]][:6]
 
     tags1 = _top_tags(likes1, games, movies, tracks)
     tags2 = _top_tags(likes2, games, movies, tracks)
@@ -73,18 +83,22 @@ def get_insight(uid1: str, uid2: str):
     total1 = sum(len(v) for v in likes1.values())
     total2 = sum(len(v) for v in likes2.values())
 
-    common_all = common_games + common_movies + common_tracks
-    shared_line = ", ".join(common_all) if common_all else "nothing in common yet"
+    all_common_titles = (
+        [x["title"] for x in common_games] +
+        [x["title"] for x in common_movies] +
+        [x["title"] for x in common_tracks]
+    )
+    shared_line = ", ".join(all_common_titles) if all_common_titles else "nothing in common yet"
 
     prompt = f"""Two users on a multimedia recommendation platform (games, movies, music).
 
-User A — {total1} liked items. Their taste: {", ".join(tags1) or "nothing liked yet"}.
-User B — {total2} liked items. Their taste: {", ".join(tags2) or "nothing liked yet"}.
+{name1} — {total1} liked items. Their taste: {", ".join(tags1) or "nothing liked yet"}.
+{name2} — {total2} liked items. Their taste: {", ".join(tags2) or "nothing liked yet"}.
 
 Shared liked content: {shared_line}.
 Taste compatibility score: {compatibility}%.
 
-Write 3 sentences comparing their tastes — what they share, how they differ, and a fun compatibility verdict. Be specific using the genres/themes above. Casual friendly tone, no bullet points."""
+Write 3 sentences comparing their tastes. Use {name1} and {name2} by name — mention what they share, how they differ, end with a fun compatibility verdict. Specific genres/themes, casual tone, no bullet points."""
 
     msg = _client.messages.create(
         model="claude-haiku-4-5-20251001",
@@ -95,11 +109,13 @@ Write 3 sentences comparing their tastes — what they share, how they differ, a
     return {
         "insight": msg.content[0].text,
         "compatibility": compatibility,
+        "name1": name1,
+        "name2": name2,
         "common": {
             "games":  common_games,
             "movies": common_movies,
             "tracks": common_tracks,
         },
-        "tags1": [t.title() for t in tags1[:5]],
-        "tags2": [t.title() for t in tags2[:5]],
+        "tags1": [t.title() for t in tags1[:6]],
+        "tags2": [t.title() for t in tags2[:6]],
     }
