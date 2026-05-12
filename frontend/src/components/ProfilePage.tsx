@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signOut, GoogleAuthProvider } from 'firebase/auth';
 import { Heart } from 'lucide-react';
 import { auth, googleProvider } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
@@ -176,18 +176,45 @@ export default function ProfilePage() {
     <div className="max-w-4xl mx-auto px-6 pt-8 pb-16">
 
       {/* Header */}
-      <div className="flex items-center gap-5 mb-8">
+      <div className="flex items-start gap-5 mb-8">
         {user.photoURL
           ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-20 h-20 rounded-full ring-2 ring-zinc-700 flex-shrink-0" />
           : <div className="w-20 h-20 rounded-full bg-zinc-800 flex items-center justify-center text-3xl font-bold text-zinc-300 flex-shrink-0">{user.displayName?.[0] ?? '?'}</div>
         }
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h1 className="text-xl font-bold text-white leading-tight">{user.displayName}</h1>
           <p className="text-zinc-500 text-sm mt-0.5 mb-2">{user.email}</p>
           <OwnSocialRow uid={user.uid} socials={socials} onUpdate={setSocials} />
           {!likesLoading && total > 0 && (
             <p className="text-zinc-600 text-xs mt-2">{total} liked item{total !== 1 ? 's' : ''}</p>
           )}
+        </div>
+        {/* Account actions */}
+        <div className="flex flex-col items-end gap-2 flex-shrink-0">
+          <button
+            onClick={async () => {
+              await signOut(auth);
+              window.location.href = '/';
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 text-xs transition-all">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 9V5.25A2.25 2.25 0 0 1 10.5 3h6a2.25 2.25 0 0 1 2.25 2.25v13.5A2.25 2.25 0 0 1 16.5 21h-6a2.25 2.25 0 0 1-2.25-2.25V15m-3 0-3-3m0 0 3-3m-3 3H15" />
+            </svg>
+            Sign out
+          </button>
+          <button
+            onClick={async () => {
+              await signOut(auth);
+              const provider = new GoogleAuthProvider();
+              provider.setCustomParameters({ prompt: 'select_account' });
+              await signInWithPopup(auth, provider);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-zinc-800 text-zinc-500 hover:text-white hover:border-zinc-600 text-xs transition-all">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7.5 21 3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5" />
+            </svg>
+            Switch account
+          </button>
         </div>
       </div>
 
