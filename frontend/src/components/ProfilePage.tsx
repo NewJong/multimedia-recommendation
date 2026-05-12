@@ -5,6 +5,7 @@ import type { User } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { API_BASE } from '../lib/api';
+import { OwnSocialRow, type Socials } from './SocialLinks';
 
 interface Likes { tracks: any[]; movies: any[]; games: any[] }
 type Tab = 'music' | 'movies' | 'games' | 'friends';
@@ -142,6 +143,7 @@ export default function ProfilePage() {
   const [requests, setRequests]       = useState<FriendUser[]>([]);
   const [search, setSearch]           = useState('');
   const [searchResults, setSearchRes] = useState<FriendUser[]>([]);
+  const [socials, setSocials]         = useState<Socials>({});
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -160,6 +162,17 @@ export default function ProfilePage() {
       fetch(`${API_BASE}/friends/${user.uid}`).then(r => r.json()),
       fetch(`${API_BASE}/friends/${user.uid}/requests`).then(r => r.json()),
     ]).then(([f, rq]) => { setFriends(f ?? []); setRequests(rq ?? []); }).catch(() => {});
+    // load social links
+    fetch(`${API_BASE}/users/${user.uid}`)
+      .then(r => r.json())
+      .then(d => setSocials({
+        social_telegram:  d.social_telegram  ?? '',
+        social_instagram: d.social_instagram ?? '',
+        social_steam:     d.social_steam     ?? '',
+        social_discord:   d.social_discord   ?? '',
+        social_tiktok:    d.social_tiktok    ?? '',
+      }))
+      .catch(() => {});
   }, [authLoading, user?.uid]);
 
   if (authLoading) return (
@@ -233,17 +246,20 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto px-6 pt-8 pb-16">
 
-      {/* User header — centered */}
-      <div className="flex flex-col items-center text-center mb-8">
+      {/* User header — photo left, info right */}
+      <div className="flex items-center gap-5 mb-8">
         {user.photoURL
-          ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-20 h-20 rounded-full ring-2 ring-zinc-700 mb-3" />
-          : <div className="w-20 h-20 rounded-full bg-zinc-800 flex items-center justify-center text-3xl font-bold text-zinc-300 mb-3">{user.displayName?.[0] ?? '?'}</div>
+          ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-20 h-20 rounded-full ring-2 ring-zinc-700 flex-shrink-0" />
+          : <div className="w-20 h-20 rounded-full bg-zinc-800 flex items-center justify-center text-3xl font-bold text-zinc-300 flex-shrink-0">{user.displayName?.[0] ?? '?'}</div>
         }
-        <h1 className="text-xl font-bold text-white">{user.displayName}</h1>
-        <p className="text-zinc-500 text-sm mt-0.5">{user.email}</p>
-        {!likesLoading && total > 0 && (
-          <p className="text-zinc-600 text-xs mt-1">{total} liked item{total !== 1 ? 's' : ''}</p>
-        )}
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-white leading-tight">{user.displayName}</h1>
+          <p className="text-zinc-500 text-sm mt-0.5 mb-2">{user.email}</p>
+          <OwnSocialRow uid={user.uid} socials={socials} onUpdate={setSocials} />
+          {!likesLoading && total > 0 && (
+            <p className="text-zinc-600 text-xs mt-2">{total} liked item{total !== 1 ? 's' : ''}</p>
+          )}
+        </div>
       </div>
 
       {/* Tabs — centered */}

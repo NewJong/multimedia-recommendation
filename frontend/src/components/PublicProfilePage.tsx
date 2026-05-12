@@ -1,8 +1,13 @@
 import { useEffect, useState } from 'react';
 import FriendButton from './FriendButton';
 import { API_BASE } from '../lib/api';
+import { VisitorSocialRow, type Socials } from './SocialLinks';
 
-interface UserInfo { firebase_uid: string; name: string; email: string; photo_url: string | null }
+interface UserInfo {
+  firebase_uid: string; name: string; email: string; photo_url: string | null;
+  social_telegram?: string; social_instagram?: string;
+  social_steam?: string; social_discord?: string; social_tiktok?: string;
+}
 interface Likes    { tracks: any[]; movies: any[]; games: any[] }
 type Tab = 'music' | 'movies' | 'games';
 
@@ -48,13 +53,24 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
   return (
     <div className="max-w-4xl mx-auto px-6 pt-8 pb-16">
 
-      {/* Header */}
-      <div className="flex flex-col items-center text-center mb-8">
+      {/* Header — photo left, info right */}
+      <div className="flex items-center gap-5 mb-8">
         <Avatar u={user} size="lg" />
-        <h1 className="text-xl font-bold text-white mt-3">{user.name}</h1>
-        <p className="text-zinc-500 text-sm mt-0.5">{total} liked items</p>
-        <div className="mt-4">
-          <FriendButton targetUid={uid} />
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold text-white leading-tight">{user.name}</h1>
+          <p className="text-zinc-500 text-sm mt-0.5 mb-2">
+            {total > 0 ? `${total} liked item${total !== 1 ? 's' : ''}` : 'No liked items yet'}
+          </p>
+          <VisitorSocialRow socials={{
+            social_telegram:  user.social_telegram,
+            social_instagram: user.social_instagram,
+            social_steam:     user.social_steam,
+            social_discord:   user.social_discord,
+            social_tiktok:    user.social_tiktok,
+          }} />
+          <div className="mt-3">
+            <FriendButton targetUid={uid} />
+          </div>
         </div>
       </div>
 
