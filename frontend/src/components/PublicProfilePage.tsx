@@ -175,11 +175,11 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                   <div className="space-y-3">
                     {compare.common.games.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-zinc-500 mb-1.5">🎮 Games</p>
+                        <p className="text-sm font-semibold text-zinc-300 mb-2">🎮 Games</p>
                         <div className="flex flex-wrap gap-2">
                           {compare.common.games.map(item => (
                             <a key={item.id} href={`/games/${item.id}`}
-                              className="text-sm px-3 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/25 transition-colors">
+                              className="text-sm px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/25 transition-colors">
                               {item.title}
                             </a>
                           ))}
@@ -188,11 +188,11 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                     )}
                     {compare.common.movies.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-zinc-500 mb-1.5">🎬 Films</p>
+                        <p className="text-sm font-semibold text-zinc-300 mb-2">🎬 Films</p>
                         <div className="flex flex-wrap gap-2">
                           {compare.common.movies.map(item => (
                             <a key={item.id} href={`/movies/${item.id}`}
-                              className="text-sm px-3 py-1 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:bg-rose-500/25 transition-colors">
+                              className="text-sm px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:bg-rose-500/25 transition-colors">
                               {item.title}
                             </a>
                           ))}
@@ -201,11 +201,11 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                     )}
                     {compare.common.tracks.length > 0 && (
                       <div>
-                        <p className="text-xs font-medium text-zinc-500 mb-1.5">🎵 Music</p>
+                        <p className="text-sm font-semibold text-zinc-300 mb-2">🎵 Music</p>
                         <div className="flex flex-wrap gap-2">
                           {compare.common.tracks.map(item => (
                             <a key={item.id} href={`/music/${item.id}`}
-                              className="text-sm px-3 py-1 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/25 transition-colors">
+                              className="text-sm px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/25 transition-colors">
                               {item.title}
                             </a>
                           ))}
