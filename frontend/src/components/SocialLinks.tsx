@@ -224,8 +224,8 @@ export function OwnSocialRow({ uid, socials, onUpdate }: OwnSocialRowProps) {
 
               {/* Tooltip on hover — only if has value */}
               {hasVal && (
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 z-[60] hidden group-hover/icon:flex flex-col items-center pointer-events-none">
-                  <div className="w-2 h-2 bg-zinc-800 border-l border-t border-zinc-700 rotate-45 -mb-1" />
+                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-[60] hidden group-hover/icon:flex items-center pointer-events-none">
+                  <div className="w-2 h-2 bg-zinc-800 border-l border-b border-zinc-700 rotate-45 -mr-1 flex-shrink-0" />
                   <div className="bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 shadow-xl text-xs whitespace-nowrap pointer-events-auto flex flex-col gap-1.5 min-w-max">
                     <p className="font-medium" style={{ color: p.color }}>{p.label}</p>
                     <p className="text-zinc-300">{display}</p>
