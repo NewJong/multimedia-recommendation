@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { Pencil, ExternalLink, Copy, Check } from 'lucide-react';
 import { API_BASE } from '../lib/api';
 
@@ -187,6 +187,17 @@ interface OwnSocialRowProps {
 export function OwnSocialRow({ uid, socials, onUpdate }: OwnSocialRowProps) {
   const [editing, setEditing] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const show = useCallback((key: string) => {
+    if (hideTimer.current) clearTimeout(hideTimer.current);
+    setOpenKey(key);
+  }, []);
+
+  const hide = useCallback(() => {
+    hideTimer.current = setTimeout(() => setOpenKey(null), 120);
+  }, []);
 
   async function copy(text: string, key: string) {
     await navigator.clipboard.writeText(text).catch(() => {});
@@ -202,9 +213,12 @@ export function OwnSocialRow({ uid, socials, onUpdate }: OwnSocialRowProps) {
           const hasVal = val.trim().length > 0;
           const url = hasVal ? p.getUrl(val) : null;
           const display = hasVal ? p.getDisplay(val) : '';
+          const isOpen = openKey === p.key;
 
           return (
-            <div key={p.key} className="relative group/icon">
+            <div key={p.key} className="relative"
+              onMouseEnter={() => hasVal && show(p.key)}
+              onMouseLeave={hide}>
               <button
                 onClick={() => setEditing(true)}
                 className={`w-8 h-8 rounded-lg flex items-center justify-center border transition-all duration-150 ${
@@ -222,11 +236,14 @@ export function OwnSocialRow({ uid, socials, onUpdate }: OwnSocialRowProps) {
                 )}
               </button>
 
-              {/* Tooltip on hover — only if has value */}
-              {hasVal && (
-                <div className="absolute left-full top-1/2 -translate-y-1/2 ml-2 z-[60] hidden group-hover/icon:flex items-center pointer-events-none">
+              {/* Tooltip — state-driven so mouse can move from icon to card without flicker */}
+              {hasVal && isOpen && (
+                <div
+                  className="absolute left-full top-1/2 -translate-y-1/2 z-[60] flex items-center pl-2"
+                  onMouseEnter={() => show(p.key)}
+                  onMouseLeave={hide}>
                   <div className="w-2 h-2 bg-zinc-800 border-l border-b border-zinc-700 rotate-45 -mr-1 flex-shrink-0" />
-                  <div className="bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 shadow-xl text-xs whitespace-nowrap pointer-events-auto flex flex-col gap-1.5 min-w-max">
+                  <div className="bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 shadow-xl text-xs whitespace-nowrap flex flex-col gap-1.5 min-w-max">
                     <p className="font-medium" style={{ color: p.color }}>{p.label}</p>
                     <p className="text-zinc-300">{display}</p>
                     <div className="flex gap-1.5 mt-0.5">
