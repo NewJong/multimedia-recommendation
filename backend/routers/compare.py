@@ -1,4 +1,5 @@
 import os
+import math
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from fastapi import APIRouter, HTTPException
@@ -24,24 +25,42 @@ def _get_name(uid: str) -> str:
     cur.execute("SELECT name FROM users WHERE firebase_uid=%s", (uid,))
     row = cur.fetchone()
     cur.close(); conn.close()
-    return (row["name"] if row else "Unknown").split()[0]  # first name only
+    return (row["name"] if row else "Unknown").split()[0]  
+
+
+def _domain_idf(items: list, fields: list, min_df: int = 1) -> dict[str, float]:
+    N = len(items)
+    df: dict[str, int] = {}
+    for item in items:
+        seen: set[str] = set()
+        for f in fields:
+            for tag in (item.get(f) or []):
+                k = tag.lower()
+                if k not in seen:
+                    df[k] = df.get(k, 0) + 1
+                    seen.add(k)
+    return {tag: math.log(N / (freq + 1)) for tag, freq in df.items() if freq >= min_df}
 
 
 def _top_tags(likes: dict[str, set[int]], games, movies, tracks, n=8) -> list[str]:
+    idf_g = _domain_idf(games,  ["tags", "genres"])
+    idf_m = _domain_idf(movies, ["genres", "keywords"], min_df=2)
+    idf_t = _domain_idf(tracks, ["genres", "tags"])
+
     w: dict[str, float] = {}
     for g in games:
         if g["id"] in likes["game"]:
             for tag in (g.get("tags") or []) + (g.get("genres") or []):
-                w[tag] = w.get(tag, 0) + 1
+                w[tag] = w.get(tag, 0) + idf_g.get(tag.lower(), 0.0)
     for m in movies:
         if m["id"] in likes["movie"]:
             for tag in (m.get("genres") or []) + (m.get("keywords") or []):
-                w[tag] = w.get(tag, 0) + 1
+                w[tag] = w.get(tag, 0) + idf_m.get(tag.lower(), 0.0)
     for t in tracks:
         if t["id"] in likes["track"]:
             for tag in (t.get("genres") or []) + (t.get("tags") or []):
-                w[tag] = w.get(tag, 0) + 1
-    return [tag for tag, _ in sorted(w.items(), key=lambda x: -x[1])[:n]]
+                w[tag] = w.get(tag, 0) + idf_t.get(tag.lower(), 0.0)
+    return [tag for tag, _ in sorted(w.items(), key=lambda x: -x[1]) if w[tag] > 0][:n]
 
 
 def _cosine(tags1: list[str], tags2: list[str]) -> int:
@@ -108,7 +127,6 @@ Write 3 sentences comparing their tastes. Start directly with the text, no intro
 
     import re
     insight = msg.content[0].text.strip()
-    # strip any leading "word—" or "word: " artifact the model sometimes adds
     insight = re.sub(r'^[\w]+[—–:]\s*', '', insight)
 
     return {
