@@ -24,8 +24,8 @@
   tags[]   : ['Open World', 'First-Person', 'Third-Person', 'Exploration', 'Family Friendly', 'Realistic', 'Management', 'Driving', 'Economy']
 
 [109] Amnesia: The Dark Descent
-  genre    : Indie
-  genres[] : ['Action', 'Adventure', 'Indie']
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
   tags[]   : ['Story Rich', 'First-Person', 'Horror', 'Exploration', 'Survival', 'Stealth', 'Dark', 'Survival Horror', 'Gothic', 'Lovecraftian']
 
 [ 58] Anno 1800
@@ -94,8 +94,8 @@
   tags[]   : ['Sandbox', 'Family Friendly', 'Realistic', 'Building', 'Management', 'Real-Time with Pause', 'Resource Management', 'Economy', 'City Builder']
 
 [107] Content Warning
-  genre    : Indie
-  genres[] : ['Action', 'Adventure', 'Indie']
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
   tags[]   : ['Co-op', 'First-Person', 'Horror', 'Exploration', 'Action-Adventure', 'Survival Horror', 'Mystery', 'Procedural Generation', 'Perma Death', 'Supernatural', 'Investigation']
 
 [ 29] Control
@@ -144,8 +144,8 @@
   tags[]   : ['Story Rich', 'Open World', 'Third-Person', 'Sci-fi', 'Horror', 'Exploration', 'Survival', 'Stealth', 'Action-Adventure', 'Post-apocalyptic', 'Cinematic', 'Aliens', 'Walking Simulator', 'Drama']
 
 [ 91] Deep Rock Galactic
-  genre    : Indie
-  genres[] : ['Action', 'Indie']
+  genre    : Action
+  genres[] : ['Action']
   tags[]   : ['Co-op', 'Sci-fi', 'First-Person', 'Exploration', 'Mining', 'Shooter', 'Team-Based', 'Military', 'Funny', 'Dark Humor']
 
 [ 70] DiRT Rally 2.0
@@ -204,8 +204,8 @@
   tags[]   : ['Story Rich', 'Exploration', 'Mystery', 'Colorful', 'Walking Simulator', 'Drama', 'Interactive Fiction', 'Thriller']
 
 [111] Five Nights at Freddy's
-  genre    : Indie
-  genres[] : ['Action', 'Indie']
+  genre    : Action
+  genres[] : ['Action']
   tags[]   : ['First-Person', 'Horror', 'Difficult', 'Survival', 'Dark', 'Point & Click', 'Survival Horror', 'Robots', 'Lore-Rich', 'Supernatural', 'Silent Protagonist', 'Mystery']
 
 [  6] Forza Horizon 4
@@ -294,8 +294,8 @@
   tags[]   : ['Co-op', 'Story Rich', 'Exploration', 'Female Protagonist', 'Action-Adventure', '3D Platformer', 'Minigames']
 
 [106] Lethal Company
-  genre    : Indie
-  genres[] : ['Action', 'Adventure', 'Indie']
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
   tags[]   : ['Co-op', 'First-Person', 'Sci-fi', 'Horror', 'Exploration', 'Action-Adventure', 'Survival Horror', 'Realistic', 'Aliens', 'Procedural Generation', 'Perma Death', 'Time Management']
 
 [  4] Mafia II
@@ -364,8 +364,8 @@
   tags[]   : ['Story Rich', 'Open World', 'Sci-fi', 'Exploration', 'Mystery', 'Non-linear', 'Space']
 
 [108] Outlast
-  genre    : Indie
-  genres[] : ['Action', 'Indie']
+  genre    : Action
+  genres[] : ['Action']
   tags[]   : ['First-Person', 'Horror', 'Difficult', 'Survival', 'Stealth', 'Dark', 'Survival Horror', 'Mystery']
 
 [ 44] Overwatch 2
@@ -384,8 +384,8 @@
   tags[]   : ['RPG', 'Exploration', 'Anime', 'JRPG', 'Drama', 'Story Rich', 'Turn-Based', 'Dark', 'Choices Matter', 'Stealth', 'Visual Novel', 'School']
 
 [ 92] Phasmophobia
-  genre    : Indie
-  genres[] : ['Action', 'Indie']
+  genre    : Action
+  genres[] : ['Action']
   tags[]   : ['Co-op', 'First-Person', 'Horror', 'Tactical', 'Dark', 'Mystery', 'Detective', 'Demons', 'Supernatural', 'Lovecraftian', 'Thriller', 'Investigation']
 
 [ 65] Planet Zoo
@@ -434,8 +434,8 @@
   tags[]   : ['Co-op', 'Open World', 'First-Person', 'Funny', 'Pirates', 'Sailing']
 
 [ 26] Sekiro: Shadows Die Twice
-  genre    : RPG
-  genres[] : ['Action', 'RPG']
+  genre    : Action
+  genres[] : ['Action']
   tags[]   : ['Story Rich', 'Third-Person', 'Exploration', 'Difficult', 'Stealth', 'Action-Adventure', 'Dark Fantasy', 'Souls-like', 'Ninja']
 
 [ 24] Shadow of the Tomb Raider
@@ -521,7 +521,7 @@
 [ 52] Total War: THREE KINGDOMS
   genre    : Strategy
   genres[] : ['Strategy', 'Simulation']
-  tags[]   : ['Co-op', 'War', 'Historical', 'RTS', 'Military', 'Strategy', 'Turn-Based Strategy']
+  tags[]   : ['Co-op', 'War', 'Historical', 'RTS', 'Military', 'Turn-Based Strategy']
 
 [118] Tunic
   genre    : Indie
