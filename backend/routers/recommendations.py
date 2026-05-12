@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from fastapi import APIRouter
-from database import get_conn, cached_query
+from database import get_conn, cached_query, _cache
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 
@@ -88,17 +88,26 @@ def _build_recommendations(uid: str, item_type: str, items: list, tag_fields: li
 
 @router.get("/{uid}/tracks")
 def recommend_tracks(uid: str):
-    items = cached_query("tracks", "SELECT * FROM tracks ORDER BY listeners DESC")
-    return _build_recommendations(uid, "track", items, ["genres", "tags"])
+    key = f"recs_track_{uid}"
+    if key not in _cache:
+        items = cached_query("tracks", "SELECT * FROM tracks ORDER BY listeners DESC")
+        _cache[key] = _build_recommendations(uid, "track", items, ["genres", "tags"])
+    return _cache[key]
 
 
 @router.get("/{uid}/movies")
 def recommend_movies(uid: str):
-    items = cached_query("movies", "SELECT * FROM movies ORDER BY rating DESC, vote_count DESC")
-    return _build_recommendations(uid, "movie", items, ["genres", "keywords"])
+    key = f"recs_movie_{uid}"
+    if key not in _cache:
+        items = cached_query("movies", "SELECT * FROM movies ORDER BY rating DESC, vote_count DESC")
+        _cache[key] = _build_recommendations(uid, "movie", items, ["genres", "keywords"])
+    return _cache[key]
 
 
 @router.get("/{uid}/games")
 def recommend_games(uid: str):
-    items = cached_query("games", "SELECT * FROM games ORDER BY rating DESC")
-    return _build_recommendations(uid, "game", items, ["genres", "tags"])
+    key = f"recs_game_{uid}"
+    if key not in _cache:
+        items = cached_query("games", "SELECT * FROM games ORDER BY rating DESC")
+        _cache[key] = _build_recommendations(uid, "game", items, ["genres", "tags"])
+    return _cache[key]

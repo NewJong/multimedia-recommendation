@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from database import get_conn, serialize_rows
+from database import get_conn, serialize_rows, _cache
 
 router = APIRouter(prefix="/likes", tags=["likes"])
 
@@ -51,6 +51,10 @@ def toggle_like(uid: str, item_type: str, item_id: int):
         cur.execute("INSERT INTO likes (user_uid, item_type, item_id) VALUES (%s, %s, %s)", (uid, item_type, item_id))
         liked = True
     conn.commit(); cur.close(); conn.close()
+
+    # Invalidate cached recommendations so next For You load is fresh
+    _cache.pop(f"recs_{item_type}_{uid}", None)
+
     return {"liked": liked}
 
 
