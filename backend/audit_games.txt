@@ -1,0 +1,564 @@
+[ 94] A Way Out
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Co-op', 'Story Rich', 'Third-Person', 'Action-Adventure', 'Cinematic', 'Crime']
+
+[ 55] Age of Empires IV
+  genre    : Strategy
+  genres[] : ['Strategy']
+  tags[]   : ['Co-op', 'War', 'Historical', 'Medieval', 'RTS', 'Base Building', 'Resource Management']
+
+[ 99] Alan Wake 2
+  genre    : Action
+  genres[] : ['Action']
+  tags[]   : ['Story Rich', 'Horror', 'Third-Person', 'Mystery', 'Cinematic', 'Psychological Horror', 'Survival Horror']
+
+[ 74] Alien: Isolation
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['First-Person', 'Sci-fi', 'Horror', 'Difficult', 'Female Protagonist', 'Survival', 'Stealth', 'Space', 'Survival Horror', 'Aliens']
+
+[  9] American Truck Simulator
+  genre    : Simulation
+  genres[] : ['Simulation', 'Indie']
+  tags[]   : ['Open World', 'First-Person', 'Third-Person', 'Exploration', 'Family Friendly', 'Realistic', 'Management', 'Driving', 'Economy']
+
+[109] Amnesia: The Dark Descent
+  genre    : Indie
+  genres[] : ['Action', 'Adventure', 'Indie']
+  tags[]   : ['Story Rich', 'First-Person', 'Horror', 'Exploration', 'Survival', 'Stealth', 'Dark', 'Survival Horror', 'Gothic', 'Lovecraftian']
+
+[ 58] Anno 1800
+  genre    : Strategy
+  genres[] : ['Strategy', 'Simulation']
+  tags[]   : ['Resource Management', 'Economy', 'City Builder', 'Trading', 'Historical', 'Building', 'Management']
+
+[ 43] Apex Legends
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['Co-op', 'First-Person', 'Sci-fi', 'Tactical', 'Character Customization', 'Cinematic', 'Team-Based', 'Battle Royale', 'Shooter', 'Military', 'Competitive']
+
+[ 22] Assassin's Creed Odyssey
+  genre    : RPG
+  genres[] : ['Action', 'RPG']
+  tags[]   : ['RPG', 'Story Rich', 'Open World', 'Third-Person', 'Female Protagonist', 'Stealth', 'Historical', 'Parkour', 'Action-Adventure', 'Hack & Slash']
+
+[ 33] Baldur's Gate III
+  genre    : RPG
+  genres[] : ['Adventure', 'RPG', 'Strategy']
+  tags[]   : ['RPG', 'Co-op', 'Fantasy', 'Character Customization', 'Isometric', 'Magic', 'CRPG', 'Party-Based RPG', 'Dungeons & Dragons']
+
+[101] Batman: Arkham Asylum
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Exploration', 'Stealth', 'Story Rich', 'Third-Person', 'Dark', 'Action-Adventure', "Beat 'em up", 'Detective', 'Superhero', 'Comic Book']
+
+[102] Batman: Arkham City
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Story Rich', 'Open World', 'Third-Person', 'Stealth', 'Action-Adventure', 'Sandbox', 'Dark', 'Comic Book', 'Superhero', 'Detective', "Beat 'em up"]
+
+[ 23] Batman: Arkham Knight
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Story Rich', 'Open World', 'Third-Person', 'Sandbox', 'Stealth', 'Dark', "Beat 'em up", 'Detective', 'Comic Book', 'Superhero', 'Action-Adventure']
+
+[103] Batman: Arkham Origins
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Story Rich', 'Open World', 'Third-Person', 'Sandbox', 'Stealth', 'Action-Adventure', 'Third-Person Shooter', "Beat 'em up", 'Detective', 'Comic Book', 'Superhero']
+
+[ 45] Battlefield V
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['First-Person', 'War', 'Historical', 'Military', 'World War II', 'Team-Based', 'Competitive', 'Shooter']
+
+[ 47] Borderlands 3
+  genre    : RPG
+  genres[] : ['Action', 'Shooter', 'Adventure', 'RPG']
+  tags[]   : ['Co-op', 'First-Person', 'Exploration', 'Action-Adventure', 'Space', 'Shooter', 'Sci-fi', 'Funny', 'Comedy']
+
+[  5] Call of Duty: Warzone
+  genre    : Shooter
+  genres[] : ['Shooter']
+  tags[]   : ['Military', 'Battle Royale', 'First-Person', 'Team-Based', 'Competitive', 'Shooter', 'Co-op']
+
+[ 78] Celeste
+  genre    : Platformer
+  genres[] : ['Indie', 'Platformer']
+  tags[]   : ['Story Rich', '2D', 'Female Protagonist', 'Difficult', 'Side Scroller', 'Colorful', 'Cute', 'Platformer', 'Precision Platformer']
+
+[ 61] Cities: Skylines
+  genre    : Strategy
+  genres[] : ['Strategy', 'Simulation']
+  tags[]   : ['Sandbox', 'Family Friendly', 'Realistic', 'Building', 'Management', 'Real-Time with Pause', 'Resource Management', 'Economy', 'City Builder']
+
+[107] Content Warning
+  genre    : Indie
+  genres[] : ['Action', 'Adventure', 'Indie']
+  tags[]   : ['Co-op', 'First-Person', 'Horror', 'Exploration', 'Action-Adventure', 'Survival Horror', 'Mystery', 'Procedural Generation', 'Perma Death', 'Supernatural', 'Investigation']
+
+[ 29] Control
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter', 'Adventure']
+  tags[]   : ['Third-Person', 'Sci-fi', 'Exploration', 'Female Protagonist', 'Action-Adventure', 'Cinematic', 'Metroidvania', 'Detective', 'Supernatural']
+
+[  8] Counter-Strike 2
+  genre    : Shooter
+  genres[] : ['Shooter']
+  tags[]   : ['First-Person', 'Difficult', 'Tactical', 'War', 'Fast-Paced', 'Military', 'Competitive', 'Esports', 'Team-Based', 'Shooter']
+
+[ 57] Crusader Kings III
+  genre    : RPG
+  genres[] : ['RPG', 'Strategy', 'Simulation']
+  tags[]   : ['RPG', 'Historical', 'Medieval', 'Dating Sim', 'Grand Strategy']
+
+[ 81] Cuphead
+  genre    : Platformer
+  genres[] : ['Action', 'Indie', 'Platformer']
+  tags[]   : ['Co-op', '2D', 'Funny', 'Difficult', 'Retro', 'Colorful', 'Side Scroller', "Shoot 'Em Up", 'Hand-drawn', 'Cartoony', 'Bullet Hell']
+
+[ 13] Cyberpunk 2077
+  genre    : RPG
+  genres[] : ['Action', 'Shooter', 'RPG']
+  tags[]   : ['RPG', 'Story Rich', 'Open World', 'First-Person', 'Sci-fi', 'Exploration', 'Sandbox', 'Action-Adventure', 'Action RPG', 'Cinematic', 'Futuristic', 'Cyberpunk', 'Crime', 'Robots', 'Third-Person', 'Hacking']
+
+[ 41] DOOM Eternal
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['First-Person', 'Sci-fi', 'Fast-Paced', 'Demons', 'Shooter', 'Difficult']
+
+[ 32] Dark Souls III
+  genre    : RPG
+  genres[] : ['Action', 'RPG']
+  tags[]   : ['RPG', 'Co-op', 'Story Rich', 'Third-Person', 'Exploration', 'Difficult', 'Action RPG', 'Character Customization', 'Dark Fantasy', 'Lore-Rich', 'Souls-like']
+
+[ 73] Dead Space (2008)
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['Story Rich', 'Third-Person', 'Sci-fi', 'Horror', 'Survival', 'Third-Person Shooter', 'Dark', 'Space', 'Zombies', 'Survival Horror', 'Futuristic', 'Aliens', 'Silent Protagonist']
+
+[ 25] Death Stranding
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Story Rich', 'Open World', 'Third-Person', 'Sci-fi', 'Horror', 'Exploration', 'Survival', 'Stealth', 'Action-Adventure', 'Post-apocalyptic', 'Cinematic', 'Aliens', 'Walking Simulator', 'Drama']
+
+[ 91] Deep Rock Galactic
+  genre    : Indie
+  genres[] : ['Action', 'Indie']
+  tags[]   : ['Co-op', 'Sci-fi', 'First-Person', 'Exploration', 'Mining', 'Shooter', 'Team-Based', 'Military', 'Funny', 'Dark Humor']
+
+[ 70] DiRT Rally 2.0
+  genre    : Racing
+  genres[] : ['Simulation', 'Sports', 'Racing']
+  tags[]   : ['Racing Simulation', 'Realistic', 'Difficult', 'Driving', 'Competitive']
+
+[ 82] Disco Elysium
+  genre    : RPG
+  genres[] : ['Adventure', 'RPG', 'Indie']
+  tags[]   : ['RPG', 'Story Rich', 'Isometric', 'Detective', 'Mystery', 'Choices Matter', 'Dark Humor', 'Drama', 'Narrative']
+
+[ 36] Divinity: Original Sin 2
+  genre    : RPG
+  genres[] : ['RPG', 'Strategy']
+  tags[]   : ['RPG', 'Co-op', 'Story Rich', 'Open World', 'Fantasy', 'Female Protagonist', 'Character Customization', 'Turn-Based', 'Isometric', 'Turn-Based Combat', 'Turn-Based Tactics', 'CRPG']
+
+[ 35] Dragon Age: Inquisition
+  genre    : RPG
+  genres[] : ['Action', 'RPG', 'Strategy']
+  tags[]   : ['RPG', 'Co-op', 'Story Rich', 'Open World', 'Third-Person', 'Fantasy', 'Female Protagonist', 'Action RPG', 'War', 'Character Customization', 'Choices Matter', 'Dragons', 'CRPG', 'Classes']
+
+[ 98] EA SPORTS FC 24
+  genre    : Simulation
+  genres[] : ['Simulation', 'Sports', 'Casual']
+  tags[]   : ['Co-op', 'Family Friendly', 'Realistic', 'Competitive', 'Esports', 'Football (Soccer)', 'Sports']
+
+[ 31] Elden Ring
+  genre    : RPG
+  genres[] : ['Action', 'RPG']
+  tags[]   : ['RPG', 'Co-op', 'Open World', 'Third-Person', 'Fantasy', 'Difficult', 'Action RPG', 'Dark Fantasy', 'Souls-like']
+
+[ 69] F1 23
+  genre    : Racing
+  genres[] : ['Simulation', 'Sports', 'Racing']
+  tags[]   : ['Co-op', 'First-Person', 'Competitive', 'Driving', 'Esports', 'Automobile Sim', 'Racing Simulation']
+
+[ 37] FINAL FANTASY XV
+  genre    : RPG
+  genres[] : ['RPG']
+  tags[]   : ['RPG', 'Fantasy', 'Open World', 'Story Rich', 'Action RPG', 'JRPG', 'Third-Person', 'Cinematic']
+
+[ 63] Factorio
+  genre    : Strategy
+  genres[] : ['Strategy', 'Simulation', 'Casual', 'Indie']
+  tags[]   : ['Co-op', 'Open World', 'Sci-fi', 'Sandbox', 'Survival', 'Crafting', 'Aliens', 'Management', 'Base Building', 'Resource Management', 'Tower Defense', 'Trains', 'Automation']
+
+[ 46] Far Cry 5
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['Co-op', 'Story Rich', 'Open World', 'First-Person', 'Exploration', 'Female Protagonist', 'Survival', 'Stealth', 'Character Customization', 'Hunting']
+
+[115] Firewatch
+  genre    : Indie
+  genres[] : ['Adventure', 'Indie']
+  tags[]   : ['Story Rich', 'Exploration', 'Mystery', 'Colorful', 'Walking Simulator', 'Drama', 'Interactive Fiction', 'Thriller']
+
+[111] Five Nights at Freddy's
+  genre    : Indie
+  genres[] : ['Action', 'Indie']
+  tags[]   : ['First-Person', 'Horror', 'Difficult', 'Survival', 'Dark', 'Point & Click', 'Survival Horror', 'Robots', 'Lore-Rich', 'Supernatural', 'Silent Protagonist', 'Mystery']
+
+[  6] Forza Horizon 4
+  genre    : Racing
+  genres[] : ['Racing', 'Arcade']
+  tags[]   : ['Co-op', 'Open World', 'First-Person', 'Exploration', 'Sandbox', 'Family Friendly', 'Realistic', 'Cinematic', 'Third-Person', 'Driving', 'Offroad', 'Racing Simulation']
+
+[ 66] Forza Horizon 5
+  genre    : Racing
+  genres[] : ['Racing', 'Arcade']
+  tags[]   : ['Co-op', 'Open World', 'First-Person', 'Third-Person', 'Exploration', 'Driving', 'Racing Simulation', 'Sandbox', 'Realistic', 'Family Friendly', 'Cinematic', 'Offroad']
+
+[ 18] Ghost of Tsushima
+  genre    : RPG
+  genres[] : ['Action', 'Adventure', 'RPG']
+  tags[]   : ['Open World', 'Third-Person', 'Action-Adventure', 'Stealth', 'Historical', 'Cinematic', 'Hack & Slash']
+
+[ 17] God of War I
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Story Rich', 'Hack & Slash', 'Mythology', 'Third-Person', 'Action-Adventure', 'Dark Fantasy', 'Cinematic', 'Difficult']
+
+[ 67] Gran Turismo 7
+  genre    : Racing
+  genres[] : ['Racing']
+  tags[]   : ['Racing Simulation', 'Realistic', 'Driving', 'Competitive', 'Sports']
+
+[  2] Grand Theft Auto V
+  genre    : Action
+  genres[] : ['Action']
+  tags[]   : ['Co-op', 'Open World', 'First-Person', 'Third-Person', 'Funny', 'Sandbox', 'Comedy', 'Third-Person Shooter', 'Crime', 'Driving', 'Story Rich', 'Action-Adventure']
+
+[ 15] Grand Theft Auto: San Andreas
+  genre    : Action
+  genres[] : ['Action']
+  tags[]   : ['Story Rich', 'Open World', 'Third-Person', 'Funny', 'Sandbox', 'Crime', 'Driving', 'Third-Person Shooter', 'Action-Adventure']
+
+[ 14] Grand Theft Auto: Vice City
+  genre    : Action
+  genres[] : ['Action']
+  tags[]   : ['Open World', 'Third-Person', 'Funny', 'Sandbox', 'Third-Person Shooter', 'Crime', 'Driving', 'Action-Adventure', 'Story Rich', 'Comedy']
+
+[ 77] Green Hell
+  genre    : Simulation
+  genres[] : ['Action', 'Adventure', 'Simulation', 'Indie']
+  tags[]   : ['Open World', 'Horror', 'Survival', 'Crafting', 'Realistic', 'Difficult', 'Action-Adventure']
+
+[104] HELLDIVERS 2
+  genre    : Action
+  genres[] : ['Action']
+  tags[]   : ['Co-op', 'Third-Person', 'Sci-fi', 'Difficult', 'Third-Person Shooter', 'Space', 'Military', 'Team-Based', 'Dark Humor', 'Action-Adventure', 'Shooter']
+
+[ 79] Hades
+  genre    : RPG
+  genres[] : ['Action', 'Adventure', 'RPG', 'Indie']
+  tags[]   : ['RPG', 'Story Rich', '2D', 'Fantasy', 'Action-Adventure', 'Action RPG', 'Hack & Slash', 'Roguelike', 'Isometric', 'Roguelite', 'Dungeon Crawler', 'Hand-drawn', 'Perma Death']
+
+[ 42] Halo Infinite
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['Co-op', 'Story Rich', 'Open World', 'First-Person', 'Sci-fi', 'Sandbox', 'Action-Adventure', 'Space', 'Futuristic', 'Aliens', 'Lore-Rich', 'Military', 'Shooter']
+
+[ 40] Hollow Knight
+  genre    : Platformer
+  genres[] : ['Action', 'Indie', 'Platformer']
+  tags[]   : ['Story Rich', '2D', 'Exploration', 'Difficult', 'Cute', 'Dark Fantasy', 'Side Scroller', 'Multiple Endings', 'Metroidvania', 'Hand-drawn', 'Gothic']
+
+[112] Hollow Knight: Silksong
+  genre    : Platformer
+  genres[] : ['Action', 'Adventure', 'Indie', 'Platformer']
+  tags[]   : ['Story Rich', '2D', 'Exploration', 'Difficult', 'Action-Adventure', 'Dark Fantasy', 'Side Scroller', 'Metroidvania', 'Hand-drawn', 'Gothic']
+
+[ 27] Horizon Zero Dawn
+  genre    : RPG
+  genres[] : ['Action', 'RPG']
+  tags[]   : ['RPG', 'Story Rich', 'Open World', 'Third-Person', 'Sci-fi', 'Exploration', 'Female Protagonist', 'Stealth', 'Action RPG', 'Post-apocalyptic', 'Cinematic', 'Futuristic', 'Robots', 'Drama', 'Lore-Rich']
+
+[ 56] Into the Breach
+  genre    : Strategy
+  genres[] : ['Strategy', 'Indie']
+  tags[]   : ['Pixel Graphics', 'Roguelike', 'Isometric', 'Turn-Based Strategy', 'Board Game', 'Mechs', 'Sci-fi', 'Difficult', 'Tactical']
+
+[ 93] It Takes Two
+  genre    : Platformer
+  genres[] : ['Action', 'Adventure', 'Platformer']
+  tags[]   : ['Co-op', 'Story Rich', 'Exploration', 'Female Protagonist', 'Action-Adventure', '3D Platformer', 'Minigames']
+
+[106] Lethal Company
+  genre    : Indie
+  genres[] : ['Action', 'Adventure', 'Indie']
+  tags[]   : ['Co-op', 'First-Person', 'Sci-fi', 'Horror', 'Exploration', 'Action-Adventure', 'Survival Horror', 'Realistic', 'Aliens', 'Procedural Generation', 'Perma Death', 'Time Management']
+
+[  4] Mafia II
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['Story Rich', 'Open World', 'Third-Person', 'Sandbox', 'Third-Person Shooter', 'Crime', 'Driving', 'Action-Adventure', 'Cinematic', 'Historical']
+
+[  3] Marvel's Spider-Man
+  genre    : Action
+  genres[] : ['Action']
+  tags[]   : ['Open World', 'Exploration', 'Action-Adventure', 'Cinematic', "Beat 'em up", 'Third-Person', 'Comic Book', 'Superhero', 'Story Rich', 'Crime', 'Third-Person Shooter']
+
+[ 34] Mass Effect 2
+  genre    : RPG
+  genres[] : ['Action', 'RPG']
+  tags[]   : ['RPG', 'Story Rich', 'Third-Person', 'Sci-fi', 'Female Protagonist', 'Action RPG', 'Third-Person Shooter', 'Space', 'Character Customization', 'Choices Matter', 'Cinematic', 'Romance']
+
+[ 49] Metro Exodus
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['Story Rich', 'First-Person', 'Sci-fi', 'Horror', 'Exploration', 'Survival', 'Stealth', 'Survival Horror', 'Post-apocalyptic', 'Crafting', 'Cinematic']
+
+[  7] Minecraft
+  genre    : Simulation
+  genres[] : ['Action', 'Simulation', 'Indie']
+  tags[]   : ['Sandbox', 'Crafting', 'Building', 'Open World', 'Procedural Generation', 'Survival']
+
+[ 39] Monster Hunter: World
+  genre    : RPG
+  genres[] : ['Action', 'Adventure', 'RPG']
+  tags[]   : ['RPG', 'Co-op', 'Open World', 'Third-Person', 'Fantasy', 'Exploration', 'Difficult', 'Action-Adventure', 'Action RPG', 'Hack & Slash', 'Character Customization', 'Hunting', 'Dinosaurs', 'Monsters']
+
+[ 85] Mortal Kombat 11
+  genre    : Fighting
+  genres[] : ['Action', 'Fighting']
+  tags[]   : ['Fighting', 'Story Rich', 'Competitive', 'Cinematic']
+
+[ 88] NBA 2K23
+  genre    : Simulation
+  genres[] : ['Simulation', 'Sports']
+  tags[]   : ['Co-op', 'Character Customization', 'Realistic', 'Team-Based', 'Management', 'Simulation', 'Trading', 'Esports', 'Basketball']
+
+[ 68] Need for Speed Heat
+  genre    : Racing
+  genres[] : ['Racing', 'Arcade']
+  tags[]   : ['Co-op', 'Open World', 'Third-Person', 'Character Customization', 'Driving', 'Racing Simulation']
+
+[ 62] No Man's Sky
+  genre    : RPG
+  genres[] : ['Action', 'Adventure', 'RPG', 'Simulation', 'Indie']
+  tags[]   : ['Open World', 'First-Person', 'Sci-fi', 'Exploration', 'Sandbox', 'Survival', 'Space', 'Mystery', 'Crafting', 'Procedural Generation', 'Space Sim']
+
+[113] Ori and the Blind Forest
+  genre    : Platformer
+  genres[] : ['Adventure', 'Platformer']
+  tags[]   : ['Story Rich', '2D', 'Fantasy', 'Exploration', 'Difficult', 'Family Friendly', 'Cute', 'Side Scroller', 'Metroidvania', '2.5D']
+
+[ 80] Ori and the Will of the Wisps
+  genre    : Platformer
+  genres[] : ['Action', 'Adventure', 'Platformer']
+  tags[]   : ['Story Rich', 'Fantasy', 'Exploration', 'Difficult', 'Action-Adventure', 'Cute', 'Metroidvania', 'Puzzle-Platformer', '2D', 'Side Scroller']
+
+[117] Outer Wilds
+  genre    : Puzzle
+  genres[] : ['Adventure', 'Indie', 'Puzzle']
+  tags[]   : ['Story Rich', 'Open World', 'Sci-fi', 'Exploration', 'Mystery', 'Non-linear', 'Space']
+
+[108] Outlast
+  genre    : Indie
+  genres[] : ['Action', 'Indie']
+  tags[]   : ['First-Person', 'Horror', 'Difficult', 'Survival', 'Stealth', 'Dark', 'Survival Horror', 'Mystery']
+
+[ 44] Overwatch 2
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['Co-op', 'First-Person', 'Sci-fi', 'Cinematic', 'Team-Based', 'Competitive', 'Dark Humor', 'Lore-Rich', 'Shooter']
+
+[ 90] Path of Exile
+  genre    : RPG
+  genres[] : ['Action', 'RPG', 'Indie']
+  tags[]   : ['RPG', 'Co-op', 'Fantasy', 'Action RPG', 'Hack & Slash', 'Character Customization', 'Dark Fantasy', 'Dungeon Crawler', 'MMORPG', 'Inventory Management']
+
+[ 38] Persona 5
+  genre    : RPG
+  genres[] : ['Action', 'Adventure', 'RPG']
+  tags[]   : ['RPG', 'Exploration', 'Anime', 'JRPG', 'Drama', 'Story Rich', 'Turn-Based', 'Dark', 'Choices Matter', 'Stealth', 'Visual Novel', 'School']
+
+[ 92] Phasmophobia
+  genre    : Indie
+  genres[] : ['Action', 'Indie']
+  tags[]   : ['Co-op', 'First-Person', 'Horror', 'Tactical', 'Dark', 'Mystery', 'Detective', 'Demons', 'Supernatural', 'Lovecraftian', 'Thriller', 'Investigation']
+
+[ 65] Planet Zoo
+  genre    : Strategy
+  genres[] : ['Strategy', 'Simulation']
+  tags[]   : ['Sandbox', 'Management', 'Building', 'Simulation', 'Realistic', 'Family Friendly']
+
+[ 95] Portal 2
+  genre    : Puzzle
+  genres[] : ['Shooter', 'Puzzle']
+  tags[]   : ['Co-op', 'Story Rich', 'First-Person', 'Sci-fi', 'Funny', 'Female Protagonist', 'Comedy', 'Puzzle']
+
+[  1] Red Dead Redemption 2
+  genre    : Action
+  genres[] : ['Action']
+  tags[]   : ['Co-op', 'Story Rich', 'Open World', 'First-Person', 'Third-Person', 'Exploration', 'Sandbox', 'Third-Person Shooter', 'Realistic', 'Cinematic', 'Historical', 'Crime', 'Hunting', 'Western']
+
+[ 72] Resident Evil 4
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Story Rich', 'Third-Person', 'Horror', 'Survival', 'Action-Adventure', 'Third-Person Shooter', 'Dark', 'Zombies', 'Survival Horror', 'Realistic', 'Crafting', 'Cinematic']
+
+[ 71] Resident Evil: Village
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Story Rich', 'First-Person', 'Horror', 'Survival', 'Dark', 'Zombies', 'Survival Horror', 'Cinematic', 'Action-Adventure', 'Crafting']
+
+[ 97] Return Of The Obra Dinn
+  genre    : Indie
+  genres[] : ['Adventure', 'Indie']
+  tags[]   : ['Horror', 'Mystery', 'Detective', 'Pirates', 'Time Manipulation']
+
+[ 64] RimWorld
+  genre    : Strategy
+  genres[] : ['Strategy', 'Simulation', 'Indie']
+  tags[]   : ['Open World', '2D', 'Sci-fi', 'Sandbox', 'Survival', 'Pixel Graphics', 'Space', 'Crafting', 'Building', 'Management', 'Base Building', 'Colony Sim']
+
+[ 11] Satisfactory
+  genre    : Strategy
+  genres[] : ['Strategy', 'Indie', 'Simulation']
+  tags[]   : ['Co-op', 'Open World', 'Sandbox', 'Building', 'Base Building', 'Resource Management', 'Automation', 'Crafting', 'Sci-fi']
+
+[105] Sea of Thieves
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Co-op', 'Open World', 'First-Person', 'Funny', 'Pirates', 'Sailing']
+
+[ 26] Sekiro: Shadows Die Twice
+  genre    : RPG
+  genres[] : ['Action', 'RPG']
+  tags[]   : ['Story Rich', 'Third-Person', 'Exploration', 'Difficult', 'Stealth', 'Action-Adventure', 'Dark Fantasy', 'Souls-like', 'Ninja']
+
+[ 24] Shadow of the Tomb Raider
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Story Rich', 'Open World', 'Third-Person', 'Exploration', 'Female Protagonist', 'Survival', 'Stealth', 'Action-Adventure', 'Dark']
+
+[ 84] Shovel Knight
+  genre    : Platformer
+  genres[] : ['Action', 'Adventure', 'Indie', 'Platformer']
+  tags[]   : ['2D', 'Fantasy', 'Funny', 'Difficult', 'Comedy', 'Co-op', 'Pixel Graphics', 'Retro', 'Side Scroller', 'Medieval']
+
+[ 51] Sid Meier’s Civilization VI
+  genre    : Strategy
+  genres[] : ['Strategy', 'Simulation']
+  tags[]   : ['Co-op', 'Tactical', 'War', 'Turn-Based', 'Historical', 'Turn-Based Strategy', 'Cartoony', 'Grand Strategy', '4X']
+
+[110] Silent Hill 2
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Story Rich', 'Third-Person', 'Exploration', 'Survival Horror', 'Cinematic', 'Multiple Endings', 'Psychological', 'Horror', 'Dark', 'Psychological Horror']
+
+[114] Spiritfarer
+  genre    : Simulation
+  genres[] : ['Adventure', 'Simulation', 'Indie']
+  tags[]   : ['Story Rich', 'Exploration', 'Management', 'Hand-drawn', 'Cozy', 'Peaceful', 'Narrative']
+
+[ 53] StarCraft II
+  genre    : Strategy
+  genres[] : ['Strategy']
+  tags[]   : ['RTS', 'Sci-fi', 'War', 'Space', 'Competitive', 'Esports', 'Military', 'Base Building', 'Resource Management']
+
+[ 60] Stardew Valley
+  genre    : RPG
+  genres[] : ['RPG', 'Simulation', 'Indie']
+  tags[]   : ['RPG', 'Co-op', '2D', 'Sandbox', 'Pixel Graphics', 'Retro', 'Cute', 'Crafting', 'Building', 'Dating Sim', 'Fishing', 'Agriculture']
+
+[ 86] Street Fighter 6
+  genre    : Fighting
+  genres[] : ['Action', 'Fighting']
+  tags[]   : ['Character Customization', 'Competitive', 'Fighting', 'Esports', 'Story Rich']
+
+[ 75] Subnautica
+  genre    : Indie
+  genres[] : ['Adventure', 'Indie']
+  tags[]   : ['Open World', 'First-Person', 'Sci-fi', 'Horror', 'Exploration', 'Sandbox', 'Survival', 'Crafting', 'Aliens', 'Base Building', 'Underwater']
+
+[ 76] The Forest
+  genre    : Indie
+  genres[] : ['Action', 'Adventure', 'Indie']
+  tags[]   : ['Co-op', 'Open World', 'First-Person', 'Horror', 'Exploration', 'Sandbox', 'Survival', 'Zombies', 'Survival Horror', 'Realistic', 'Crafting', 'Building']
+
+[100] The Last of Us Part I
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter', 'Adventure']
+  tags[]   : ['Story Rich', 'Third-Person', 'Horror', 'Action-Adventure', 'Third-Person Shooter', 'Zombies', 'Survival Horror', 'Post-apocalyptic', 'Realistic', 'Cinematic', 'Drama']
+
+[ 21] The Legend of Zelda: Breath of the Wild
+  genre    : RPG
+  genres[] : ['Action', 'Adventure', 'RPG']
+  tags[]   : ['RPG', 'Open World', 'Sandbox', 'Action-Adventure', 'Exploration', 'Fantasy', 'Crafting', 'Stealth', 'Puzzle']
+
+[ 59] The Sims 4
+  genre    : Strategy
+  genres[] : ['Strategy', 'Simulation', 'Casual']
+  tags[]   : ['Funny', 'Character Customization', 'Family Friendly', 'Cute', 'Realistic', 'Building', 'Cartoony', 'Romance', 'Simulation', 'Life Sim']
+
+[ 12] The Witcher 3: Wild Hunt
+  genre    : RPG
+  genres[] : ['Action', 'RPG']
+  tags[]   : ['RPG', 'Story Rich', 'Open World', 'Third-Person', 'Fantasy', 'Sandbox', 'Action RPG', 'Dark', 'Choices Matter', 'Dark Fantasy', 'Medieval', 'Magic', 'Multiple Endings']
+
+[ 96] The Witness
+  genre    : Puzzle
+  genres[] : ['Adventure', 'Indie', 'Puzzle']
+  tags[]   : ['Story Rich', 'Open World', 'First-Person', 'Exploration', 'Difficult', 'Mystery', 'Colorful', 'Surreal', 'Non-linear']
+
+[ 48] Titanfall 2
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['First-Person', 'Sci-fi', 'Cinematic', 'Futuristic', 'Team-Based', 'Fast-Paced', 'Military', 'Parkour', 'Robots', 'Time Travel', 'Mechs', 'Shooter']
+
+[ 52] Total War: THREE KINGDOMS
+  genre    : Strategy
+  genres[] : ['Strategy', 'Simulation']
+  tags[]   : ['Co-op', 'War', 'Historical', 'RTS', 'Military', 'Strategy', 'Turn-Based Strategy']
+
+[118] Tunic
+  genre    : Indie
+  genres[] : ['Action', 'Adventure', 'Indie']
+  tags[]   : ['Exploration', 'Difficult', 'Mystery', 'Souls-like', 'Fantasy', 'Isometric']
+
+[ 28] Uncharted 4: A Thief’s End
+  genre    : Adventure
+  genres[] : ['Action', 'Adventure']
+  tags[]   : ['Action-Adventure', 'Third-Person', 'Story Rich', 'Cinematic', 'Exploration', 'Stealth', 'Third-Person Shooter']
+
+[ 83] Undertale
+  genre    : RPG
+  genres[] : ['RPG', 'Indie']
+  tags[]   : ['RPG', 'Story Rich', '2D', 'Funny', 'Comedy', 'Pixel Graphics', 'Dark', 'Retro', 'Cute', 'Choices Matter', 'Multiple Endings', 'Bullet Hell', 'Dating Sim']
+
+[ 16] Valheim
+  genre    : Indie
+  genres[] : ['Action', 'Adventure', 'Indie']
+  tags[]   : ['Co-op', 'Fantasy', 'Exploration', 'Survival', 'Crafting', 'Sailing', 'Norse', 'Building']
+
+[116] What Remains of Edith Finch
+  genre    : Indie
+  genres[] : ['Adventure', 'Indie']
+  tags[]   : ['Story Rich', 'First-Person', 'Exploration', 'Female Protagonist', 'Mystery', 'Walking Simulator']
+
+[ 10] World of Tanks
+  genre    : Shooter
+  genres[] : ['Action', 'Shooter']
+  tags[]   : ['War', 'Realistic', 'Historical', 'Team-Based', 'Military', 'World War II', 'Shooter', 'Tanks', 'Wargame', 'Vehicular Combat', 'Simulation', 'Competitive']
+
+[ 89] World of Warcraft
+  genre    : RPG
+  genres[] : ['RPG', 'MMO']
+  tags[]   : ['Fantasy', 'Open World', 'Exploration', 'Character Customization', 'MMORPG', 'Medieval', 'Magic', 'MMO', 'Co-op']
+
+[ 54] XCOM 2
+  genre    : RPG
+  genres[] : ['RPG', 'Strategy']
+  tags[]   : ['Co-op', 'Sci-fi', 'Difficult', 'Tactical', 'Character Customization', 'Turn-Based', 'Futuristic', 'Aliens', 'Turn-Based Strategy', 'Turn-Based Tactics', 'Perma Death']
