@@ -98,7 +98,7 @@ def get_insight(uid1: str, uid2: str):
 Shared liked content: {shared_line}.
 Taste compatibility score: {compatibility}%.
 
-Write 3 sentences comparing their tastes. Use {name1} and {name2} by name — mention what they share, how they differ, end with a fun compatibility verdict. Specific genres/themes, casual tone, no bullet points."""
+Write 3 sentences comparing their tastes. Start directly with the text, no intro words or labels. Use {name1} and {name2} by name — mention what they share, how they differ, end with a fun compatibility verdict. Specific genres/themes, casual tone, no bullet points."""
 
     msg = _client.messages.create(
         model="claude-haiku-4-5-20251001",
@@ -106,8 +106,13 @@ Write 3 sentences comparing their tastes. Use {name1} and {name2} by name — me
         messages=[{"role": "user", "content": prompt}],
     )
 
+    import re
+    insight = msg.content[0].text.strip()
+    # strip any leading "word—" or "word: " artifact the model sometimes adds
+    insight = re.sub(r'^[\w]+[—–:]\s*', '', insight)
+
     return {
-        "insight": msg.content[0].text,
+        "insight": insight,
         "compatibility": compatibility,
         "name1": name1,
         "name2": name2,
