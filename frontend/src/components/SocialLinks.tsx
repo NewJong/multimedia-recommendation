@@ -100,7 +100,6 @@ const PLATFORMS: Platform[] = [
   },
 ];
 
-// ── Edit Modal ──────────────────────────────────────────────────────────────
 
 interface EditModalProps {
   uid: string;
@@ -176,7 +175,6 @@ export function SocialEditModal({ uid, socials, onClose, onSaved }: EditModalPro
   );
 }
 
-// ── Own profile social row ──────────────────────────────────────────────────
 
 interface OwnSocialRowProps {
   uid: string;
@@ -236,7 +234,6 @@ export function OwnSocialRow({ uid, socials, onUpdate }: OwnSocialRowProps) {
                 )}
               </button>
 
-              {/* Tooltip — state-driven so mouse can move from icon to card without flicker */}
               {hasVal && isOpen && (
                 <div
                   className="absolute left-full top-1/2 -translate-y-1/2 z-[60] flex items-center pl-2"
@@ -274,7 +271,6 @@ export function OwnSocialRow({ uid, socials, onUpdate }: OwnSocialRowProps) {
           );
         })}
 
-        {/* Edit button */}
         <button onClick={() => setEditing(true)}
           className="w-8 h-8 rounded-lg flex items-center justify-center border border-zinc-700 hover:border-zinc-500 text-zinc-600 hover:text-zinc-300 transition-all duration-150"
           title="Edit social links">

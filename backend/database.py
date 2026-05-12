@@ -6,10 +6,8 @@ DB_URL = os.getenv("DATABASE_URL")
 
 _cache: dict = {}
 
-
 def get_conn():
     return psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
-
 
 def serialize_rows(rows: list) -> list:
     result = []
@@ -21,7 +19,6 @@ def serialize_rows(rows: list) -> list:
             else:                        clean[k] = v
         result.append(clean)
     return result
-
 
 def cached_query(key: str, sql: str) -> list:
     if key not in _cache:

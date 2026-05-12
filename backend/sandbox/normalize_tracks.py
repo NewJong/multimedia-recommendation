@@ -1,11 +1,3 @@
-"""
-Cleans tags + genre for all tracks already in DB:
-  - Merges genre-spelling synonyms (hip-hop / hip hop / Hip-Hop → Hip-Hop)
-  - Removes noise tags (subjective labels, year tags, lastfm artefacts)
-  - Re-derives genre field from cleaned tags if it's empty or inconsistent
-  - Deduplicates tags within each track
-Run: python normalize_tracks.py
-"""
 import sys, re, psycopg2, psycopg2.extras
 from dotenv import load_dotenv
 from pathlib import Path
