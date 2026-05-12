@@ -265,9 +265,10 @@ def fetch_track(artist, title):
         except Exception:
             pass
 
+    primary = resolve_genre(tags)
     return {
         "name":        t["name"],
-        "genre":       resolve_genre(tags),
+        "genres":      [primary] if primary else [],
         "tags":        tags,
         "artist":      t["artist"]["name"],
         "album":       album,
@@ -314,20 +315,21 @@ for artist, title in new_tracks:
 
         cur.execute("""
             INSERT INTO tracks
-                (name, genre, tags, artist, album, duration_ms,
+                (name, genres, tags, artist, album, duration_ms,
                  listeners, playcount, summary, image_url, url)
             VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT (name, artist) DO NOTHING
             RETURNING id
         """, (
-            info["name"], info["genre"], info["tags"], info["artist"],
+            info["name"], info["genres"], info["tags"], info["artist"],
             info["album"], info["duration_ms"], info["listeners"],
             info["playcount"], info["summary"], info["image_url"], info["url"],
         ))
         conn.commit()
 
         if cur.fetchone():
-            print(f"  + [{info['genre'] or '?':15}] {info['artist']} — {info['name']}")
+            primary = (info['genres'] or ['?'])[0]
+            print(f"  + [{primary:15}] {info['artist']} — {info['name']}")
             inserted += 1
         else:
             print(f"  ~ exists: {info['artist']} — {info['name']}")

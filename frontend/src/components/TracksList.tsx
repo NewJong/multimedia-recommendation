@@ -7,7 +7,6 @@ import { fmtCompact } from '../lib/format';
 interface Track {
   id: number;
   name: string;
-  genre: string;
   genres: string[];
   tags: string[];
   artist: string;
@@ -56,7 +55,7 @@ function GenreFilters({ genres, selected, onToggle, color }: {
 interface RecMeta { score: number; matchedTags: string[] }
 
 function TrackCard({ t, index, liked, onToggle, recMeta }: { t: Track; index: number; liked: boolean; onToggle?: (id: number) => void; recMeta?: RecMeta }) {
-  const genres = t.genres.length > 0 ? t.genres : t.genre ? [t.genre] : [];
+  const genres = t.genres || [];
 
   return (
     <a
@@ -178,7 +177,7 @@ export default function TracksList() {
   const allGenres = useMemo(() => {
     const set = new Set<string>();
     tracks.forEach(t => {
-      (t.genres.length > 0 ? t.genres : t.genre ? [t.genre] : []).forEach(g => set.add(g));
+      (t.genres || []).forEach(g => set.add(g));
     });
     return [...set].sort();
   }, [tracks]);
@@ -194,9 +193,9 @@ export default function TracksList() {
     const matchSearch = !search ||
       t.name.toLowerCase().includes(ql) ||
       t.artist.toLowerCase().includes(ql) ||
-      t.genre.toLowerCase().includes(ql) ||
+      t.genres.some(g => g.toLowerCase().includes(ql)) ||
       t.tags.some(tag => tag.toLowerCase().includes(ql));
-    const trackGenres = t.genres.length > 0 ? t.genres : t.genre ? [t.genre] : [];
+    const trackGenres = t.genres || [];
     const matchGenre = selectedGenres.length === 0 ||
       selectedGenres.some(g => trackGenres.includes(g));
     return matchSearch && matchGenre;

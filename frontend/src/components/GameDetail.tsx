@@ -4,7 +4,7 @@ import FriendsLiked from './FriendsLiked';
 import { API_BASE } from '../lib/api';
 
 interface Game {
-  id: number; title: string; genre: string; genres: string[]; tags: string[];
+  id: number; title: string; genres: string[]; tags: string[];
   description: string; release_year: number; rating: number; metacritic: number;
   platforms: string[]; developers: string[]; publishers: string[];
   esrb_rating: string; poster_url: string; rawg_id: number;

@@ -48,7 +48,6 @@ async def search(body: SearchBody):
         ql = q.lower()
         def mt(t): return (
             ql in t["name"].lower() or ql in t.get("artist", "").lower()
-            or ql in t.get("genre", "").lower()
             or any(ql in tag.lower() for tag in t.get("tags", []))
             or any(ql in g.lower()   for g   in t.get("genres", []))
         )

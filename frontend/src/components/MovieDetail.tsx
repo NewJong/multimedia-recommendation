@@ -5,7 +5,7 @@ import { API_BASE } from '../lib/api';
 import { fmtRuntime, fmtMoney } from '../lib/format';
 
 interface Movie {
-  id: number; title: string; genre: string; genres: string[]; keywords: string[];
+  id: number; title: string; genres: string[]; keywords: string[];
   overview: string; tagline: string; release_year: number; runtime: number;
   rating: number; vote_count: number; popularity: number; language: string;
   status: string; director: string; actors: string[];

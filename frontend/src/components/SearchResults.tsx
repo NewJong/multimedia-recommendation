@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { API_BASE } from '../lib/api';
 
-interface Track { id: number; name: string; artist: string; genre: string; genres: string[]; image_url: string; listeners: number; }
-interface Movie { id: number; title: string; genre: string; genres: string[]; poster_url: string; rating: number; release_year: number; director: string; }
-interface Game  { id: number; title: string; genre: string; genres: string[]; poster_url: string; rating: number; metacritic: number; release_year: number; }
+interface Track { id: number; name: string; artist: string; genres: string[]; image_url: string; listeners: number; }
+interface Movie { id: number; title: string; genres: string[]; poster_url: string; rating: number; release_year: number; director: string; }
+interface Game  { id: number; title: string; genres: string[]; poster_url: string; rating: number; metacritic: number; release_year: number; }
 
 interface Results {
   tracks: Track[];
@@ -90,11 +90,11 @@ export default function SearchResults() {
 
   function toggleDomain(d: Domain) {
     setFilter(prev => {
-      if (prev.size === 3) return new Set([d]);          // all → only this
+      if (prev.size === 3) return new Set([d]);         
       const next = new Set(prev);
       if (next.has(d)) {
         next.delete(d);
-        return next.size === 0 ? new Set(ALL_DOMAINS) : next; // last one → reset
+        return next.size === 0 ? new Set(ALL_DOMAINS) : next;
       }
       next.add(d);
       return next.size === 3 ? new Set(ALL_DOMAINS) : next;

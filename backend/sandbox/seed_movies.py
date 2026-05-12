@@ -57,7 +57,6 @@ def fetch_movie(tmdb_id):
     d = get(f"/movie/{tmdb_id}", append_to_response="credits,keywords")
 
     genres   = [GENRE_MAP.get(g["id"], g["name"]) for g in d.get("genres", [])]
-    genre    = genres[0] if genres else ""
     kw_list  = d.get("keywords", {}).get("keywords", [])
     keywords = [k["name"] for k in kw_list[:15]]
 
@@ -75,7 +74,6 @@ def fetch_movie(tmdb_id):
     return {
         "tmdb_id":       d["id"],
         "title":         d["title"],
-        "genre":         genre,
         "genres":        genres,
         "keywords":      keywords,
         "overview":      d.get("overview", ""),
@@ -144,16 +142,16 @@ for tmdb_id in movie_ids:
 
         cur.execute("""
             INSERT INTO movies
-                (title, genre, genres, keywords, overview, tagline,
+                (title, genres, keywords, overview, tagline,
                  release_year, runtime, rating, vote_count, popularity, language,
                  status, director, actors, poster_url, backdrop_url,
                  budget, revenue, collection, tmdb_id)
             VALUES
-                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+                (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT (tmdb_id) DO NOTHING
             RETURNING id
         """, (
-            m["title"], m["genre"], m["genres"],
+            m["title"], m["genres"],
             m["keywords"], m["overview"], m["tagline"], m["release_year"],
             m["runtime"], m["rating"], m["vote_count"], m["popularity"],
             m["language"], m["status"], m["director"], m["actors"],
@@ -163,7 +161,8 @@ for tmdb_id in movie_ids:
         conn.commit()
 
         if cur.fetchone():
-            print(f"  + [{m['genre']:15}] {m['title']} ({m['release_year']})  ★{m['rating']}")
+            primary = (m['genres'] or ['?'])[0]
+            print(f"  + [{primary:15}] {m['title']} ({m['release_year']})  ★{m['rating']}")
             inserted += 1
         else:
             skipped += 1

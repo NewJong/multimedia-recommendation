@@ -6,7 +6,7 @@ import { fmtCompact, fmtDuration } from '../lib/format';
 
 interface Track {
   id: number; name: string; artist: string; album: string;
-  genre: string; genres: string[]; tags: string[];
+  genres: string[]; tags: string[];
   duration_ms: number; listeners: number; playcount: number;
   summary: string; image_url: string; url: string;
 }

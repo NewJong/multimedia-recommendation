@@ -156,13 +156,6 @@ NOISE_TAGS = {
 }
 
 
-def resolve_genre(genres):
-    for preferred in GENRE_PRIORITY:
-        if preferred in genres:
-            return preferred
-    return genres[0] if genres else ""
-
-
 def strip_html(text: str, max_len: int = 1500) -> str:
     import html as _html
     text = _html.unescape(text or "")       # &#39; → '  &amp; → &
@@ -195,7 +188,6 @@ def fetch_game(rawg_id):
     d = rget(f"/games/{rawg_id}")
 
     genres = [GENRE_MAP.get(g["slug"], g["name"]) for g in d.get("genres", [])]
-    genre  = resolve_genre(genres)
 
     raw_tags = [t["name"] for t in d.get("tags", []) if t.get("language") == "eng"]
     tags = [t for t in raw_tags if t.lower() not in NOISE_TAGS]  # no hard cap — normalize_games handles noise
@@ -214,7 +206,6 @@ def fetch_game(rawg_id):
     return {
         "rawg_id":      d["id"],
         "title":        d["name"],
-        "genre":        genre,
         "genres":       genres,
         "tags":         tags,
         "description":  desc,
@@ -283,14 +274,14 @@ for name, rawg_id in ordered_ids:
 
         cur.execute("""
             INSERT INTO games
-                (title, genre, genres, tags, description, release_year,
+                (title, genres, tags, description, release_year,
                  rating, metacritic, playtime, platforms,
                  developers, publishers, esrb_rating, poster_url, rawg_id)
-            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+            VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
             ON CONFLICT (rawg_id) DO NOTHING
             RETURNING id
         """, (
-            g["title"], g["genre"], g["genres"], g["tags"],
+            g["title"], g["genres"], g["tags"],
             g["description"], g["release_year"], g["rating"],
             g["metacritic"], g["playtime"], g["platforms"],
             g["developers"], g["publishers"], g["esrb_rating"],
@@ -299,7 +290,8 @@ for name, rawg_id in ordered_ids:
         conn.commit()
 
         if cur.fetchone():
-            print(f"  + [{g['genre']:12}] {g['title']} ({g['release_year']})  ★{g['rating']}  MC:{g['metacritic'] or '—'}")
+            primary = (g['genres'] or ['?'])[0]
+            print(f"  + [{primary:12}] {g['title']} ({g['release_year']})  ★{g['rating']}  MC:{g['metacritic'] or '—'}")
             inserted += 1
         else:
             skipped += 1
