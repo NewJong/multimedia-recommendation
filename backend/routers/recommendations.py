@@ -60,7 +60,7 @@ def _build_recommendations(uid: str, item_type: str, items: list, tag_fields: li
     top_indices = np.argsort(scores)[::-1]
     results = []
     for idx in top_indices:
-        if scores[idx] <= 0 or len(results) >= 24:
+        if scores[idx] <= 0 or len(results) >= 50:
             break
 
         item = candidates[idx]

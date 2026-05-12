@@ -111,6 +111,8 @@ const SORT_TABS: { key: SortTab; label: string }[] = [
   { key: 'foryou',   label: '✦ For You' },
 ];
 
+const PAGE_SIZE = 20;
+
 export default function GamesList() {
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,6 +126,7 @@ export default function GamesList() {
   const [recs, setRecs] = useState<Game[]>([]);
   const [recsLoading, setRecsLoading] = useState(false);
   const [recsLoaded, setRecsLoaded] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
     fetch(`${API_BASE}/games`)
@@ -163,6 +166,9 @@ export default function GamesList() {
     new Map((recs as any[]).map(r => [r.id, { score: r._score, matchedTags: r._matched_tags || [] }])),
     [recs]
   );
+
+  // Reset pagination when tab, search or genre filter changes
+  useEffect(() => { setVisibleCount(PAGE_SIZE); }, [sortTab, search, selectedGenres]);
 
   const allGenres = useMemo(() => {
     const set = new Set<string>();
@@ -240,8 +246,17 @@ export default function GamesList() {
             color={{ active: 'bg-emerald-500 border-emerald-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-emerald-600 hover:text-emerald-300' }}
           />
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-            {sorted.map((g, i) => <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined} recMeta={recMap.get(g.id)} />)}
+            {sorted.slice(0, visibleCount).map((g, i) => <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined} recMeta={recMap.get(g.id)} />)}
           </div>
+          {visibleCount < sorted.length && (
+            <div className="mt-8 flex flex-col items-center gap-2">
+              <p className="text-zinc-600 text-xs">{visibleCount} of {sorted.length}</p>
+              <button onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+                className="px-6 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-medium hover:border-emerald-500 hover:text-emerald-300 transition-all duration-200">
+                Load more
+              </button>
+            </div>
+          )}
         </>
       )}
 
@@ -272,11 +287,20 @@ export default function GamesList() {
                 color={{ active: 'bg-emerald-500 border-emerald-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-emerald-600 hover:text-emerald-300' }}
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {filteredRecs.map((g: any, i: number) => (
+                {filteredRecs.slice(0, visibleCount).map((g: any, i: number) => (
                   <GameCard key={g.id} g={g} index={i} liked={likedIds.has(g.id)} onToggle={uid ? toggleLike : undefined}
                     recMeta={{ score: g._score, matchedTags: g._matched_tags || [] }} />
                 ))}
               </div>
+              {visibleCount < filteredRecs.length && (
+                <div className="mt-8 flex flex-col items-center gap-2">
+                  <p className="text-zinc-600 text-xs">{visibleCount} of {filteredRecs.length}</p>
+                  <button onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
+                    className="px-6 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-medium hover:border-emerald-500 hover:text-emerald-300 transition-all duration-200">
+                    Load more
+                  </button>
+                </div>
+              )}
             </>
           )}
         </div>
