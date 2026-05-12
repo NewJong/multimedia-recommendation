@@ -83,6 +83,20 @@ const path = Astro.url.pathname;
             )}
             Games
           </a>
+          <a
+            href="/friends"
+            class:list={[
+              "relative px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200",
+              path.startsWith("/friends")
+                ? "text-sky-300 bg-sky-500/12"
+                : "text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800/70",
+            ]}
+          >
+            {path.startsWith("/friends") && (
+              <span class="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-sky-400"></span>
+            )}
+            Friends
+          </a>
         </nav>
 
         <!-- Right side -->
