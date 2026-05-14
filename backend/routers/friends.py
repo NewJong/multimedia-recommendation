@@ -60,9 +60,25 @@ def get_friends(uid: str):
 def send_request(uid: str, to_uid: str):
     if uid == to_uid:
         raise HTTPException(status_code=400, detail="Cannot add yourself")
-    conn = get_conn(); cur = conn.cursor()
-    cur.execute("INSERT INTO friend_requests (from_uid, to_uid) VALUES (%s, %s) ON CONFLICT DO NOTHING", (uid, to_uid))
-    conn.commit(); cur.close(); conn.close()
+    conn = get_conn()
+    try:
+        with conn, conn.cursor() as cur:
+            # If the other side already has a pending request to us, accept it
+            # instead of creating a duplicate row.
+            cur.execute("""
+                UPDATE friend_requests SET status = 'accepted'
+                WHERE from_uid = %s AND to_uid = %s AND status = 'pending'
+                RETURNING id
+            """, (to_uid, uid))
+            if cur.fetchone():
+                return {"status": "friends"}
+
+            cur.execute(
+                "INSERT INTO friend_requests (from_uid, to_uid) VALUES (%s, %s) ON CONFLICT DO NOTHING",
+                (uid, to_uid),
+            )
+    finally:
+        conn.close()
     return {"status": "pending_sent"}
 
 

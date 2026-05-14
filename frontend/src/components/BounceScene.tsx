@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../lib/api';
+import { cachedFetch } from '../lib/cache';
 
 const CW = 158;   // card width
 const CH = 62;    // card height
@@ -41,12 +42,12 @@ export default function BounceScene() {
   const [q, setQ]           = useState('');
   const [aiMode, setAiMode] = useState(false);
 
-  // Fetch all three domains
+  // Fetch all three domains (cached in sessionStorage for instant repeat visits)
   useEffect(() => {
     Promise.all([
-      fetch(`${API_BASE}/tracks`).then(r => r.json()).catch(() => []),
-      fetch(`${API_BASE}/movies`).then(r => r.json()).catch(() => []),
-      fetch(`${API_BASE}/games`).then(r  => r.json()).catch(() => []),
+      cachedFetch<any[]>('catalog:tracks', `${API_BASE}/tracks`).catch(() => []),
+      cachedFetch<any[]>('catalog:movies', `${API_BASE}/movies`).catch(() => []),
+      cachedFetch<any[]>('catalog:games',  `${API_BASE}/games`).catch(() => []),
     ]).then(([tracks, movies, games]) => {
       const W  = boxRef.current?.clientWidth  ?? 1200;
       const H  = boxRef.current?.clientHeight ?? 650;
@@ -155,14 +156,23 @@ export default function BounceScene() {
             key={d.i}
             href={d.href}
             ref={el => { elRefs.current[i] = el as HTMLDivElement | null; }}
-            className={`absolute top-0 left-0 transition-opacity duration-300 ${match ? 'opacity-100' : 'opacity-[0.06]'}`}
-            style={{ width: CW, height: CH, willChange: 'transform', textDecoration: 'none' }}
+            className={`absolute top-0 left-0 ${match ? 'opacity-100' : 'opacity-[0.06]'}`}
+            style={{
+              width: CW, height: CH, willChange: 'transform', textDecoration: 'none',
+              animation: 'card-fade-in 0.5s ease-out both',
+              animationDelay: `${i * 25}ms`,
+              transition: 'opacity 0.3s ease',
+            }}
           >
             <div className={`w-full h-full rounded-xl border flex items-center gap-2.5 px-2.5 cursor-pointer transition-colors ${CARD_STYLE[d.domain]}`}>
               <img
                 src={d.img}
                 alt=""
-                className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-zinc-800"
+                loading="eager"
+                decoding="async"
+                className="w-10 h-10 rounded-lg object-cover flex-shrink-0 bg-zinc-800 transition-opacity duration-300"
+                onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1'; }}
+                style={{ opacity: 0.4 }}
               />
               <div className="min-w-0 flex-1">
                 <div className="text-white text-[11px] font-semibold leading-tight truncate">
@@ -176,6 +186,7 @@ export default function BounceScene() {
           </a>
         );
       })}
+      <style>{`@keyframes card-fade-in { from { opacity: 0; } to { opacity: 1; } }`}</style>
 
       {/* Center search */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">

@@ -1,4 +1,4 @@
-import os, json
+import os, json, re
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
@@ -93,14 +93,18 @@ async def search(body: SearchBody):
     )
 
     raw = msg.content[0].text.strip()
-    if raw.startswith("```"):
-        raw = raw.split("```")[1]
-        if raw.startswith("json"): raw = raw[4:]
-        raw = raw.strip()
-
+    result = None
     try:
         result = json.loads(raw)
     except Exception:
+        # Try to recover: strip ```json fences or extract the first {...} block.
+        m = re.search(r"\{.*\}", raw, re.DOTALL)
+        if m:
+            try:
+                result = json.loads(m.group(0))
+            except Exception:
+                result = None
+    if result is None:
         raise HTTPException(status_code=500, detail=f"AI returned invalid JSON: {raw[:200]}")
 
     tid = set(result.get("t", []))

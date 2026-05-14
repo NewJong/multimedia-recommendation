@@ -34,6 +34,7 @@ export default function LikeButton({ itemType, itemId, likedClass }: Props) {
       const r = await fetch(`${API_BASE}/likes/${uid}/${itemType}/${itemId}`, { method: 'POST' });
       const d = await r.json();
       setLiked(d.liked);
+      window.dispatchEvent(new CustomEvent('like-changed', { detail: { itemType, itemId } }));
     } catch {
       setLiked(prev);
     }

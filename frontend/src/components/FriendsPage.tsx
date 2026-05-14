@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
@@ -22,6 +22,8 @@ export default function FriendsPage() {
   const [search, setSearch]     = useState('');
   const [searchResults, setSearchRes] = useState<FriendUser[]>([]);
   const [loaded, setLoaded]     = useState(false);
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const searchSeq = useRef(0);
 
   useEffect(() => {
     if (authLoading || !user) return;
@@ -55,13 +57,20 @@ export default function FriendsPage() {
     </div>
   );
 
-  async function doSearch(q: string) {
+  function doSearch(q: string) {
     setSearch(q);
+    if (searchTimer.current) clearTimeout(searchTimer.current);
     if (q.length < 2) { setSearchRes([]); return; }
-    try {
-      const r = await fetch(`${API_BASE}/users/search?q=${encodeURIComponent(q)}`);
-      setSearchRes((await r.json()).filter((u: FriendUser) => u.firebase_uid !== user?.uid));
-    } catch {}
+    const seq = ++searchSeq.current;
+    searchTimer.current = setTimeout(async () => {
+      try {
+        const r = await fetch(`${API_BASE}/users/search?q=${encodeURIComponent(q)}`);
+        const data = await r.json();
+        // Discard stale responses
+        if (seq !== searchSeq.current) return;
+        setSearchRes(data.filter((u: FriendUser) => u.firebase_uid !== user?.uid));
+      } catch {}
+    }, 250);
   }
 
   async function acceptReq(fromUid: string) {

@@ -5,8 +5,6 @@ from database import get_conn
 
 router = APIRouter(prefix="/users", tags=["users"])
 
-SOCIAL_FIELDS = ["social_telegram", "social_instagram", "social_steam", "social_discord", "social_tiktok"]
-
 
 class UserSync(BaseModel):
     uid: str

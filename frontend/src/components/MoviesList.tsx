@@ -1,8 +1,15 @@
 import { useMemo, useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
+import { useLikes } from '../hooks/useLikes';
+import { useRecommendations } from '../hooks/useRecommendations';
 import { API_BASE } from '../lib/api';
+import { cacheGet, cachedFetch } from '../lib/cache';
 import { fmtRuntime } from '../lib/format';
+import GenreFilters from './list/GenreFilters';
+import LoadMore from './list/LoadMore';
+import SortTabs from './list/SortTabs';
+import SearchWithAI from './list/SearchWithAI';
 
 interface Movie {
   id: number; title: string; genres: string[]; keywords: string[];
@@ -11,26 +18,6 @@ interface Movie {
   status: string; director: string; actors: string[];
   poster_url: string; backdrop_url: string; budget: number; revenue: number;
   collection: string; tmdb_id: number;
-}
-
-function GenreFilters({ genres, selected, onToggle, color }: {
-  genres: string[]; selected: string[];
-  onToggle: (g: string) => void; color: { active: string; pill: string };
-}) {
-  return (
-    <div className="flex flex-wrap gap-2 mb-6">
-      <button onClick={() => selected.forEach(g => onToggle(g))}
-        className={`px-3 py-1 rounded-full text-xs font-medium border transition-all duration-150 ${selected.length === 0 ? color.active : 'border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-zinc-200'}`}>
-        All
-      </button>
-      {genres.map(g => (
-        <button key={g} onClick={() => onToggle(g)}
-          className={`px-3 py-1 rounded-full text-xs font-medium border transition-all duration-150 ${selected.includes(g) ? color.active : color.pill}`}>
-          {g}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 interface RecMeta { score: number; matchedTags: string[] }
@@ -93,57 +80,28 @@ const SORT_TABS: { key: SortTab; label: string }[] = [
 const PAGE_SIZE = 20;
 
 export default function MoviesList() {
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedMovies = cacheGet<Movie[]>('catalog:movies');
+  const [movies, setMovies] = useState<Movie[]>(cachedMovies ?? []);
+  const [loading, setLoading] = useState(cachedMovies === null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [focused, setFocused] = useState(false);
   const [selectedGenres, setSelectedGenres] = useState<string[]>([]);
   const { uid } = useAuth();
-  const [likedIds, setLikedIds] = useState<Set<number>>(new Set());
+  const { likedIds, toggleLike } = useLikes('movie', uid);
   const [sortTab, setSortTab] = useState<SortTab>('popular');
-  const [recs, setRecs] = useState<Movie[]>([]);
-  const [recsLoading, setRecsLoading] = useState(false);
-  const [recsLoaded, setRecsLoaded] = useState(false);
+  const { recs, loading: recsLoading } = useRecommendations<Movie & { _score: number; _matched_tags?: string[] }>('movie', uid);
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    fetch(`${API_BASE}/movies`)
-      .then(r => r.json()).then(setMovies)
+    if (cachedMovies !== null) return;  // already seeded from cache
+    cachedFetch<Movie[]>('catalog:movies', `${API_BASE}/movies`)
+      .then(setMovies)
       .catch(() => setError('Backend offline — run: uvicorn main:app --reload'))
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    if (!uid) { setLikedIds(new Set()); return; }
-    fetch(`${API_BASE}/likes/${uid}`)
-      .then(r => r.json())
-      .then(d => setLikedIds(new Set((d.movies ?? []).map((m: any) => m.id as number))))
-      .catch(() => {});
-  }, [uid]);
-
-  async function toggleLike(movieId: number) {
-    if (!uid) return;
-    const was = likedIds.has(movieId);
-    setLikedIds(prev => { const n = new Set(prev); was ? n.delete(movieId) : n.add(movieId); return n; });
-    try {
-      await fetch(`${API_BASE}/likes/${uid}/movie/${movieId}`, { method: 'POST' });
-      setRecsLoaded(false);
-    } catch {
-      setLikedIds(prev => { const n = new Set(prev); was ? n.add(movieId) : n.delete(movieId); return n; });
-    }
-  }
-
-  useEffect(() => {
-    if (!uid || recsLoaded) return;
-    setRecsLoading(true);
-    fetch(`${API_BASE}/recommendations/${uid}/movies`)
-      .then(r => r.json()).then(d => { setRecs(d); setRecsLoaded(true); })
-      .catch(() => setRecsLoaded(true)).finally(() => setRecsLoading(false));
-  }, [uid, recsLoaded]);
-
   const recMap = useMemo(() =>
-    new Map((recs as any[]).map(r => [r.id, { score: r._score, matchedTags: r._matched_tags || [] }])),
+    new Map(recs.map(r => [r.id, { score: r._score, matchedTags: r._matched_tags || [] }])),
     [recs]
   );
 
@@ -173,7 +131,7 @@ export default function MoviesList() {
 
   const filteredRecs = useMemo(() => {
     if (selectedGenres.length === 0) return recs;
-    return recs.filter((r: any) => (r.genres || []).some((g: string) => selectedGenres.includes(g)));
+    return recs.filter(r => (r.genres || []).some((g: string) => selectedGenres.includes(g)));
   }, [recs, selectedGenres]);
 
   if (loading) return (
@@ -194,15 +152,8 @@ export default function MoviesList() {
 
   return (
     <div>
-      <div className="flex items-center gap-1 mb-5 border-b border-zinc-800/60 pb-1">
-        {SORT_TABS.map(tab => (
-          <button key={tab.key} onClick={() => setSortTab(tab.key)}
-            className={`relative px-3 py-1.5 rounded-t-lg text-sm font-medium transition-all duration-200 ${sortTab === tab.key ? 'text-rose-300' : 'text-zinc-500 hover:text-zinc-300'}`}>
-            {tab.label}
-            {sortTab === tab.key && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-rose-400 rounded-full" />}
-          </button>
-        ))}
-      </div>
+      <SortTabs tabs={SORT_TABS} current={sortTab} onChange={setSortTab}
+        activeText="text-rose-300" activeBar="bg-rose-400" />
 
       {sortTab !== 'foryou' && (
         <>
@@ -212,12 +163,10 @@ export default function MoviesList() {
                 ? <><span className="text-white font-medium">{sorted.length}</span> of {movies.length}</>
                 : <>{movies.length} movies</>}
             </p>
-            <input type="text" placeholder="Search…" value={search}
-              onChange={e => setSearch(e.target.value)}
-              onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
-              className="bg-zinc-900 border border-zinc-800 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-rose-500 w-56 transition-all duration-300"
-              style={{ boxShadow: focused ? '0 0 0 3px rgba(244,63,94,0.15)' : 'none' }}
-            />
+            <SearchWithAI value={search} onChange={setSearch}
+              focusBorder="focus-within:border-rose-500"
+              focusRing="0 0 0 3px rgba(244,63,94,0.15)"
+              aiActiveCls="bg-rose-500/15 text-rose-300 hover:bg-rose-500/25 border border-rose-500/30" />
           </div>
           <GenreFilters genres={allGenres} selected={selectedGenres}
             onToggle={g => setSelectedGenres(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g])}
@@ -226,15 +175,9 @@ export default function MoviesList() {
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {sorted.slice(0, visibleCount).map((m, i) => <MovieCard key={m.id} m={m} index={i} liked={likedIds.has(m.id)} onToggle={uid ? toggleLike : undefined} recMeta={recMap.get(m.id)} />)}
           </div>
-          {visibleCount < sorted.length && (
-            <div className="mt-8 flex flex-col items-center gap-2">
-              <p className="text-zinc-600 text-xs">{visibleCount} of {sorted.length}</p>
-              <button onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
-                className="px-6 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-medium hover:border-rose-500 hover:text-rose-300 transition-all duration-200">
-                Load more
-              </button>
-            </div>
-          )}
+          <LoadMore visible={Math.min(visibleCount, sorted.length)} total={sorted.length}
+            onMore={() => setVisibleCount(v => v + PAGE_SIZE)}
+            hoverColor="hover:border-rose-500 hover:text-rose-300" />
         </>
       )}
 
@@ -265,20 +208,14 @@ export default function MoviesList() {
                 color={{ active: 'bg-rose-500 border-rose-500 text-white', pill: 'border-zinc-700 text-zinc-400 hover:border-rose-600 hover:text-rose-300' }}
               />
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                {filteredRecs.slice(0, visibleCount).map((m: any, i: number) => (
+                {filteredRecs.slice(0, visibleCount).map((m, i) => (
                   <MovieCard key={m.id} m={m} index={i} liked={likedIds.has(m.id)} onToggle={uid ? toggleLike : undefined}
                     recMeta={{ score: m._score, matchedTags: m._matched_tags || [] }} />
                 ))}
               </div>
-              {visibleCount < filteredRecs.length && (
-                <div className="mt-8 flex flex-col items-center gap-2">
-                  <p className="text-zinc-600 text-xs">{visibleCount} of {filteredRecs.length}</p>
-                  <button onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
-                    className="px-6 py-2.5 rounded-xl border border-zinc-700 text-zinc-300 text-sm font-medium hover:border-rose-500 hover:text-rose-300 transition-all duration-200">
-                    Load more
-                  </button>
-                </div>
-              )}
+              <LoadMore visible={Math.min(visibleCount, filteredRecs.length)} total={filteredRecs.length}
+                onMore={() => setVisibleCount(v => v + PAGE_SIZE)}
+                hoverColor="hover:border-rose-500 hover:text-rose-300" />
             </>
           )}
         </div>

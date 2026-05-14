@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException
-from database import get_conn, serialize_rows, cached_query
+from database import get_conn, serialize_rows, cached_query, _cache
 
 router = APIRouter(tags=["content"])
 
@@ -51,24 +51,28 @@ def get_game_by_id(game_id: int):
 
 @router.get("/tags/overview")
 def get_tags_overview():
-    conn = get_conn(); cur = conn.cursor()
+    if "tags_overview" in _cache:
+        return _cache["tags_overview"]
 
-    cur.execute("SELECT tag, COUNT(*) AS cnt FROM tracks, unnest(tags) AS tag GROUP BY tag ORDER BY cnt DESC LIMIT 60")
-    music_tags = [{"tag": r["tag"], "count": r["cnt"]} for r in cur.fetchall()]
+    conn = get_conn()
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT tag, COUNT(*) AS cnt FROM tracks, unnest(tags) AS tag GROUP BY tag ORDER BY cnt DESC LIMIT 60")
+            music_tags = [{"tag": r["tag"], "count": r["cnt"]} for r in cur.fetchall()]
 
-    cur.execute("SELECT kw, COUNT(*) AS cnt FROM movies, unnest(keywords) AS kw GROUP BY kw ORDER BY cnt DESC LIMIT 60")
-    movie_keywords = [{"tag": r["kw"], "count": r["cnt"]} for r in cur.fetchall()]
+            cur.execute("SELECT kw, COUNT(*) AS cnt FROM movies, unnest(keywords) AS kw GROUP BY kw ORDER BY cnt DESC LIMIT 60")
+            movie_keywords = [{"tag": r["kw"], "count": r["cnt"]} for r in cur.fetchall()]
 
-    cur.execute("SELECT tag, COUNT(*) AS cnt FROM games, unnest(tags) AS tag GROUP BY tag ORDER BY cnt DESC LIMIT 60")
-    game_tags = [{"tag": r["tag"], "count": r["cnt"]} for r in cur.fetchall()]
-
-    cur.close(); conn.close()
+            cur.execute("SELECT tag, COUNT(*) AS cnt FROM games, unnest(tags) AS tag GROUP BY tag ORDER BY cnt DESC LIMIT 60")
+            game_tags = [{"tag": r["tag"], "count": r["cnt"]} for r in cur.fetchall()]
+    finally:
+        conn.close()
 
     music_set = {t["tag"].lower() for t in music_tags}
     movie_set = {t["tag"].lower() for t in movie_keywords}
     game_set  = {t["tag"].lower() for t in game_tags}
 
-    return {
+    result = {
         "music":  music_tags,
         "movies": movie_keywords,
         "games":  game_tags,
@@ -79,3 +83,5 @@ def get_tags_overview():
             "all_three":        sorted(music_set & movie_set & game_set),
         },
     }
+    _cache["tags_overview"] = result
+    return result

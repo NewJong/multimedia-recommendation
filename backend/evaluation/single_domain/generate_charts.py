@@ -1,15 +1,15 @@
 """
 generate_charts.py — стовпчасті діаграми результатів evaluation.
 
-Читає evaluation_results.json (має бути в тій самій папці) і генерує:
-  • evaluation_chart_overall.png  — 3 subplots (P@10, R@10, MRR@10), per-domain
-  • evaluation_chart_lift.png     — single chart: lift TF-IDF над baselines
+Читає results.json (має бути в тій самій папці) і генерує:
+  • chart_overall.png  — 3 subplots (P@10, R@10, MRR@10), per-domain
+  • chart_lift.png     — single chart: lift TF-IDF над baselines
 
 Для глави диплому "Експериментальна оцінка" / "Результати дослідження".
 
 ЗАПУСКАТИ:
   cd backend
-  python evaluation/generate_charts.py
+  python evaluation/single_domain/generate_charts.py
 """
 import json
 import sys
@@ -21,7 +21,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 THIS_DIR = Path(__file__).parent
-data = json.load(open(THIS_DIR / "evaluation_results.json", encoding="utf-8"))
+data = json.load(open(THIS_DIR / "results.json", encoding="utf-8"))
 
 # ── Chart 1: per-domain breakdown ────────────────────────────────────────────
 metrics      = [("p@10", "Precision@10"), ("r@10", "Recall@10"), ("mrr@10", "MRR@10")]
@@ -66,7 +66,7 @@ fig.suptitle(
     fontsize=14, fontweight="bold", y=1.02,
 )
 plt.tight_layout()
-out1 = THIS_DIR / "evaluation_chart_overall.png"
+out1 = THIS_DIR / "chart_overall.png"
 plt.savefig(out1, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"✓ {out1.name}")
@@ -126,7 +126,7 @@ for i, k in enumerate(metric_keys):
         )
 
 plt.tight_layout()
-out2 = THIS_DIR / "evaluation_chart_lift.png"
+out2 = THIS_DIR / "chart_lift.png"
 plt.savefig(out2, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"✓ {out2.name}")

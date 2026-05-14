@@ -13,12 +13,23 @@ interface Likes    { tracks: any[]; movies: any[]; games: any[] }
 type Tab = 'music' | 'movies' | 'games';
 
 interface CompareItem { id: number; title: string }
+interface PickItem {
+  id: number;
+  title: string;
+  poster_url?: string;
+  image_url?: string;
+  artist?: string;
+  release_year?: number;
+  score: number;
+  matched_tags: string[];
+}
 interface CompareResult {
   insight: string;
   compatibility: number;
   name1: string;
   name2: string;
   common: { games: CompareItem[]; movies: CompareItem[]; tracks: CompareItem[] };
+  picks:  { games: PickItem[];   movies: PickItem[];   tracks: PickItem[] };
   tags1: string[];
   tags2: string[];
 }
@@ -155,7 +166,7 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
 
             {/* Result */}
             {compare && (
-              <div className="px-6 py-4 space-y-3">
+              <div className="px-6 py-4 space-y-2.5">
                 <div className="flex items-center gap-3">
                   <span className={`text-2xl font-bold ${compare.compatibility >= 70 ? 'text-emerald-400' : compare.compatibility >= 40 ? 'text-yellow-400' : 'text-zinc-400'}`}>
                     {compare.compatibility}%
@@ -170,16 +181,18 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                 </div>
                 <p className="text-sm text-zinc-300 leading-relaxed">{compare.insight}</p>
 
-                {/* Both liked — by category */}
+                {/* Both liked — three columns by domain */}
                 {(compare.common.games.length + compare.common.movies.length + compare.common.tracks.length) > 0 && (
-                  <div className="space-y-3">
-                    {compare.common.games.length > 0 && (
-                      <div>
-                        <p className="text-sm font-semibold text-zinc-300 mb-2">🎮 Games</p>
-                        <div className="flex flex-wrap gap-2">
-                          {compare.common.games.map(item => (
-                            <a key={item.id} href={`/games/${item.id}`}
-                              className="text-sm px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/25 transition-colors">
+                  <div className="flex flex-col sm:flex-row gap-x-4 gap-y-3 pt-1">
+                    {compare.common.tracks.length > 0 && (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-zinc-600 mb-1.5 flex items-center gap-1">
+                          <span>🎵</span><span>Music</span>
+                        </p>
+                        <div className="flex flex-col items-start gap-1">
+                          {compare.common.tracks.map(item => (
+                            <a key={item.id} href={`/music/${item.id}`}
+                              className="max-w-full text-xs px-2 py-0.5 rounded-md bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/25 transition-colors truncate">
                               {item.title}
                             </a>
                           ))}
@@ -187,25 +200,29 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                       </div>
                     )}
                     {compare.common.movies.length > 0 && (
-                      <div>
-                        <p className="text-sm font-semibold text-zinc-300 mb-2">🎬 Films</p>
-                        <div className="flex flex-wrap gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-zinc-600 mb-1.5 flex items-center gap-1">
+                          <span>🎬</span><span>Films</span>
+                        </p>
+                        <div className="flex flex-col items-start gap-1">
                           {compare.common.movies.map(item => (
                             <a key={item.id} href={`/movies/${item.id}`}
-                              className="text-sm px-3 py-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:bg-rose-500/25 transition-colors">
+                              className="max-w-full text-xs px-2 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/20 text-rose-300 hover:bg-rose-500/25 transition-colors truncate">
                               {item.title}
                             </a>
                           ))}
                         </div>
                       </div>
                     )}
-                    {compare.common.tracks.length > 0 && (
-                      <div>
-                        <p className="text-sm font-semibold text-zinc-300 mb-2">🎵 Music</p>
-                        <div className="flex flex-wrap gap-2">
-                          {compare.common.tracks.map(item => (
-                            <a key={item.id} href={`/music/${item.id}`}
-                              className="text-sm px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/20 text-violet-300 hover:bg-violet-500/25 transition-colors">
+                    {compare.common.games.length > 0 && (
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[10px] uppercase tracking-wider text-zinc-600 mb-1.5 flex items-center gap-1">
+                          <span>🎮</span><span>Games</span>
+                        </p>
+                        <div className="flex flex-col items-start gap-1">
+                          {compare.common.games.map(item => (
+                            <a key={item.id} href={`/games/${item.id}`}
+                              className="max-w-full text-xs px-2 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 hover:bg-emerald-500/25 transition-colors truncate">
                               {item.title}
                             </a>
                           ))}
@@ -217,9 +234,9 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
 
                 {/* Taste tags — your vibe vs their vibe */}
                 {(compare.tags1.length > 0 || compare.tags2.length > 0) && (
-                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-zinc-800">
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800">
                     <div>
-                      <p className="text-xs text-zinc-500 mb-1.5">Your vibe</p>
+                      <p className="text-[10px] uppercase tracking-wider text-zinc-600 mb-1">Your vibe</p>
                       <div className="flex flex-wrap gap-1">
                         {compare.tags1.map(t => (
                           <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-300">{t}</span>
@@ -227,12 +244,69 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                       </div>
                     </div>
                     <div>
-                      <p className="text-xs text-zinc-500 mb-1.5">{compare.name2}'s vibe</p>
+                      <p className="text-[10px] uppercase tracking-wider text-zinc-600 mb-1">{compare.name2}'s vibe</p>
                       <div className="flex flex-wrap gap-1">
                         {compare.tags2.map(t => (
                           <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-sky-500/10 border border-sky-500/20 text-sky-300">{t}</span>
                         ))}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Picks from their library — distinctive items that broaden taste */}
+                {(compare.picks.games.length + compare.picks.movies.length + compare.picks.tracks.length) > 0 && (
+                  <div className="pt-2 border-t border-zinc-800">
+                    <p className="text-[10px] uppercase tracking-wider text-zinc-600 mb-2">✦ What {compare.name2} brings — broaden your taste</p>
+                    <div className="space-y-2">
+                      {compare.picks.tracks.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {compare.picks.tracks.map(p => (
+                            <a key={p.id} href={`/music/${p.id}`}
+                              className="flex items-center gap-2.5 p-2 rounded-lg bg-violet-500/8 border border-violet-500/20 hover:bg-violet-500/15 transition-colors group">
+                              {p.image_url
+                                ? <img src={p.image_url} alt="" className="w-11 h-11 rounded object-cover flex-shrink-0" />
+                                : <div className="w-11 h-11 rounded bg-zinc-800 flex items-center justify-center text-base flex-shrink-0">🎵</div>}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm text-violet-200 font-medium truncate group-hover:text-white leading-tight">{p.title}</p>
+                                <p className="text-xs text-zinc-500 truncate leading-tight mt-0.5">{p.artist} · {p.score}%</p>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {compare.picks.movies.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {compare.picks.movies.map(p => (
+                            <a key={p.id} href={`/movies/${p.id}`}
+                              className="flex items-center gap-2.5 p-2 rounded-lg bg-rose-500/8 border border-rose-500/20 hover:bg-rose-500/15 transition-colors group">
+                              {p.poster_url
+                                ? <img src={p.poster_url} alt="" className="w-11 h-11 rounded object-cover object-top flex-shrink-0" />
+                                : <div className="w-11 h-11 rounded bg-zinc-800 flex items-center justify-center text-base flex-shrink-0">🎬</div>}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm text-rose-200 font-medium truncate group-hover:text-white leading-tight">{p.title}</p>
+                                <p className="text-xs text-zinc-500 truncate leading-tight mt-0.5">{p.release_year || '—'} · {p.score}%</p>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                      {compare.picks.games.length > 0 && (
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          {compare.picks.games.map(p => (
+                            <a key={p.id} href={`/games/${p.id}`}
+                              className="flex items-center gap-2.5 p-2 rounded-lg bg-emerald-500/8 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors group">
+                              {p.poster_url
+                                ? <img src={p.poster_url} alt="" className="w-11 h-11 rounded object-cover flex-shrink-0" />
+                                : <div className="w-11 h-11 rounded bg-zinc-800 flex items-center justify-center text-base flex-shrink-0">🎮</div>}
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm text-emerald-200 font-medium truncate group-hover:text-white leading-tight">{p.title}</p>
+                                <p className="text-xs text-zinc-500 truncate leading-tight mt-0.5">{p.release_year || '—'} · {p.score}%</p>
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}

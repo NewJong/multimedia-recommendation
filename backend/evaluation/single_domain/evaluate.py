@@ -35,11 +35,11 @@ evaluate_recommendations.py — Експериментальна оцінка с
 
 ЯК ЗАПУСКАТИ:
   cd backend
-  python evaluation/evaluate_recommendations.py
+  python evaluation/single_domain/evaluate.py
 
 ВИВІД:
   • stdout       — таблиці per-seed, per-domain, overall з mean ± std
-  • JSON-файл    — evaluation/evaluation_results.json (для диплому)
+  • JSON-файл    — evaluation/single_domain/results.json (для диплому)
 """
 import os
 import sys
@@ -413,7 +413,7 @@ def main():
     print_report(overall, per_domain, SEEDS, SAMPLE_SIZE)
 
     # Persist
-    out_path = Path(__file__).parent / "evaluation_results.json"
+    out_path = Path(__file__).parent / "results.json"
     save_json(all_runs, overall, per_domain, out_path, SEEDS, SAMPLE_SIZE)
     print(f"✓ Результати (всі {len(SEEDS)} прогонів + agg) → {out_path}")
 

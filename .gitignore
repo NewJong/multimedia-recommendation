@@ -52,3 +52,5 @@ yarn-debug.log*
 *.db
 backend/create_likes.py
 idea.txt
+last.txt
+*.txt

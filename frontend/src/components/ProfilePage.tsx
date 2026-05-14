@@ -166,7 +166,9 @@ export default function ProfilePage() {
       movies: itemType === 'movie' ? prev.movies.filter(m => m.id !== itemId) : prev.movies,
       games:  itemType === 'game'  ? prev.games.filter(g => g.id !== itemId)  : prev.games,
     }));
-    fetch(`${API_BASE}/likes/${user.uid}/${itemType}/${itemId}`, { method: 'POST' }).catch(() => {});
+    fetch(`${API_BASE}/likes/${user.uid}/${itemType}/${itemId}`, { method: 'POST' })
+      .then(() => window.dispatchEvent(new CustomEvent('like-changed', { detail: { itemType, itemId } })))
+      .catch(() => {});
   }
 
   const counts = { music: likes.tracks.length, movies: likes.movies.length, games: likes.games.length };

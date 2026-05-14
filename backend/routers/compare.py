@@ -63,6 +63,86 @@ def _top_tags(likes: dict[str, set[int]], games, movies, tracks, n=8) -> list[st
     return [tag for tag, _ in sorted(w.items(), key=lambda x: -x[1]) if w[tag] > 0][:n]
 
 
+def _distinctive_picks(
+    my_liked: set[int], their_liked: set[int], items: list,
+    tag_fields: list, min_df: int = 1
+) -> list[tuple[dict, int, list[str]]]:
+    """
+    Items from their library (minus mine) that capture what's DISTINCTIVE about
+    their taste compared to mine. Score = how much they prefer this item's tags
+    over how much I do (their_vec − my_vec, clipped at 0).
+
+    This is the opposite of For You: For You finds what matches MY taste; this
+    finds what they bring that I don't already have. If I love rock and they
+    love jazz, jazz tracks bubble to the top here — even though they'd never
+    appear in my For You.
+
+    Returns up to 3 (item, score_0_100, top_diff_tags) tuples, with the highest
+    distinctive score normalized to 100.
+    """
+    doc_freq: dict[str, int] = {}
+    for item in items:
+        seen: set[str] = set()
+        for f in tag_fields:
+            for tag in (item.get(f) or []):
+                k = tag.lower()
+                if k not in seen:
+                    doc_freq[k] = doc_freq.get(k, 0) + 1
+                    seen.add(k)
+
+    vocab: dict[str, int] = {}
+    for k, freq in doc_freq.items():
+        if freq >= min_df:
+            vocab[k] = len(vocab)
+    if not vocab:
+        return []
+    N = len(items)
+    idf_arr = np.zeros(len(vocab))
+    for k, idx in vocab.items():
+        idf_arr[idx] = math.log(N / (doc_freq[k] + 1))
+
+    def build_vec(liked: set[int]) -> np.ndarray:
+        v = np.zeros(len(vocab))
+        for item in items:
+            if item["id"] not in liked:
+                continue
+            for f in tag_fields:
+                for tag in (item.get(f) or []):
+                    k = tag.lower()
+                    if k in vocab:
+                        v[vocab[k]] += idf_arr[vocab[k]]
+        return v
+
+    my_vec    = build_vec(my_liked)
+    their_vec = build_vec(their_liked)
+    diff_vec  = np.maximum(their_vec - my_vec, 0)
+
+    idx_to_tag = {i: k for k, i in vocab.items()}
+    candidates = [i for i in items if i["id"] in their_liked and i["id"] not in my_liked]
+    scored: list[tuple[float, dict, list[str]]] = []
+    for item in candidates:
+        tag_indices = set()
+        for f in tag_fields:
+            for tag in (item.get(f) or []):
+                k = tag.lower()
+                if k in vocab:
+                    tag_indices.add(vocab[k])
+        if not tag_indices:
+            continue
+        score = float(sum(diff_vec[i] for i in tag_indices))
+        if score <= 0:
+            continue
+        top_tags = sorted(tag_indices, key=lambda i: -diff_vec[i])
+        matched_tags = [idx_to_tag[i].title() for i in top_tags if diff_vec[i] > 0][:3]
+        scored.append((score, item, matched_tags))
+
+    scored.sort(key=lambda x: -x[0])
+    if not scored:
+        return []
+    max_score = scored[0][0]
+    return [(item, round((s / max_score) * 100), tags) for s, item, tags in scored[:3]]
+
+
 def _cosine(tags1: list[str], tags2: list[str]) -> int:
     vocab = list(set(tags1) | set(tags2))
     if not vocab:
@@ -81,9 +161,10 @@ def get_insight(uid1: str, uid2: str):
     if uid1 == uid2:
         raise HTTPException(status_code=400, detail="Same user")
 
-    games  = cached_query("games",  "SELECT id, title, genres, tags FROM games ORDER BY id")
-    movies = cached_query("movies", "SELECT id, title, genres, keywords FROM movies ORDER BY id")
-    tracks = cached_query("tracks", "SELECT id, name, genres, tags FROM tracks ORDER BY id")
+    # Use the same SELECT * as content.py so cache stays consistent regardless of call order.
+    games  = cached_query("games",  "SELECT * FROM games  ORDER BY rating DESC")
+    movies = cached_query("movies", "SELECT * FROM movies ORDER BY rating DESC, vote_count DESC")
+    tracks = cached_query("tracks", "SELECT * FROM tracks ORDER BY listeners DESC")
 
     likes1 = _likes_by_type(uid1)
     likes2 = _likes_by_type(uid2)
@@ -94,6 +175,26 @@ def get_insight(uid1: str, uid2: str):
     common_games  = [{"id": g["id"], "title": g["title"]} for g in games  if g["id"] in likes1["game"]  & likes2["game"]][:6]
     common_movies = [{"id": m["id"], "title": m["title"]} for m in movies if m["id"] in likes1["movie"] & likes2["movie"]][:6]
     common_tracks = [{"id": t["id"], "title": t["name"]}  for t in tracks if t["id"] in likes1["track"] & likes2["track"]][:6]
+
+    # Distinctive picks: items uid2 likes that capture what's UNIQUE about their
+    # taste vs uid1's. Ranked by (their_vec − my_vec), not by similarity to my
+    # own profile. This is the opposite of For You — it surfaces what they bring
+    # to the table (e.g., jazz tracks for a rock fan), not what I'd already find.
+    games_picks  = _distinctive_picks(likes1["game"],  likes2["game"],  games,  ["genres", "tags"])
+    movies_picks = _distinctive_picks(likes1["movie"], likes2["movie"], movies, ["genres", "keywords"], min_df=2)
+    tracks_picks = _distinctive_picks(likes1["track"], likes2["track"], tracks, ["genres", "tags"])
+
+    picks = {
+        "games":  [{"id": i["id"], "title": i["title"], "poster_url": i.get("poster_url"),
+                    "release_year": i.get("release_year"), "score": s, "matched_tags": t}
+                   for i, s, t in games_picks],
+        "movies": [{"id": i["id"], "title": i["title"], "poster_url": i.get("poster_url"),
+                    "release_year": i.get("release_year"), "score": s, "matched_tags": t}
+                   for i, s, t in movies_picks],
+        "tracks": [{"id": i["id"], "title": i["name"], "image_url": i.get("image_url"),
+                    "artist": i.get("artist"), "score": s, "matched_tags": t}
+                   for i, s, t in tracks_picks],
+    }
 
     tags1 = _top_tags(likes1, games, movies, tracks)
     tags2 = _top_tags(likes2, games, movies, tracks)
@@ -109,6 +210,27 @@ def get_insight(uid1: str, uid2: str):
     )
     shared_line = ", ".join(all_common_titles) if all_common_titles else "nothing in common yet"
 
+    # Pick titles for the LLM — these are items DISTINCTIVE to name2's taste
+    # (things name1 likely wouldn't discover on their own).
+    pick_titles = (
+        [f'"{p["title"]}" (music)' for p in picks["tracks"]] +
+        [f'"{p["title"]}" (movie)' for p in picks["movies"]] +
+        [f'"{p["title"]}" (game)'  for p in picks["games"]]
+    )
+    picks_line = ", ".join(pick_titles) if pick_titles else "no distinctive picks"
+
+    # Count how many domains actually have distinctive picks — we'll require the
+    # LLM to span as many as available, not pile up suggestions in one domain.
+    domains_with_picks = sum(1 for k in ("tracks", "movies", "games") if picks[k])
+    if domains_with_picks >= 3:
+        diversity_rule = "Pick exactly THREE items — ONE from music, ONE from a movie, ONE from a game. Never pick two from the same domain."
+    elif domains_with_picks == 2:
+        diversity_rule = "Pick exactly TWO items — one from each of the two domains that have picks. Never both from the same domain."
+    elif domains_with_picks == 1:
+        diversity_rule = "Pick 1-2 items from the single domain with picks."
+    else:
+        diversity_rule = "Skip the suggestion sentence — there are no distinctive picks to recommend."
+
     prompt = f"""Two users on a multimedia recommendation platform (games, movies, music).
 
 {name1} — {total1} liked items. Their taste: {", ".join(tags1) or "nothing liked yet"}.
@@ -117,7 +239,15 @@ def get_insight(uid1: str, uid2: str):
 Shared liked content: {shared_line}.
 Taste compatibility score: {compatibility}%.
 
-Write 3 sentences comparing their tastes. Start directly with the text, no intro words or labels. Use {name1} and {name2} by name — mention what they share, how they differ, end with a fun compatibility verdict. Specific genres/themes, casual tone, no bullet points."""
+Items that capture what's DISTINCTIVE about {name2}'s taste vs {name1}'s: {picks_line}.
+
+Write EXACTLY 3 short sentences addressed to {name1} in second person ("you"), ~80-100 words total.
+
+Sentence 1: what you and {name2} share — specific genres/themes.
+Sentence 2: where {name2}'s taste diverges from yours — what vibes they bring that you don't.
+Sentence 3: concrete suggestions to broaden taste. {diversity_rule} Use the format: "Title" (music/movie/game) — for example: "Kind of Blue" (music) and "Pulp Fiction" (movie). Do NOT wrap the whole quotation in single quotes — write the titles directly in the sentence.
+
+Start directly, no intro words. Casual tone, specific not generic, no bullet points."""
 
     msg = _client.messages.create(
         model="claude-haiku-4-5-20251001",
@@ -139,6 +269,7 @@ Write 3 sentences comparing their tastes. Start directly with the text, no intro
             "movies": common_movies,
             "tracks": common_tracks,
         },
+        "picks": picks,
         "tags1": [t.title() for t in tags1[:6]],
         "tags2": [t.title() for t in tags2[:6]],
     }
