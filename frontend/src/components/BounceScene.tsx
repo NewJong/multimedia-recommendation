@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../lib/api';
 import { cachedFetch } from '../lib/cache';
+import { thumbUrl } from '../lib/format';
 
 const CW = 158;   // card width
 const CH = 62;    // card height
@@ -39,6 +40,7 @@ export default function BounceScene() {
   const dots      = useRef<Dot[]>([]);
   const elRefs    = useRef<(HTMLDivElement | null)[]>([]);
   const [ready, setReady]   = useState(false);
+  const [visibleCount, setVisibleCount] = useState(0);  // progressive insertion
   const [q, setQ]           = useState('');
   const [aiMode, setAiMode] = useState(false);
 
@@ -72,13 +74,25 @@ export default function BounceScene() {
       const list: Dot[] = [];
       const pickGenre = (gens: string[] | undefined) =>
         (gens && gens[0] === 'Action' && gens[1]) ? gens[1] : (gens?.[0] ?? '');
-      topTracks.forEach(t => list.push(place('music', t.name,  pickGenre(t.genres), t.image_url,  `/music/${t.id}`,  list.length)));
-      topMovies.forEach(m => list.push(place('movie', m.title, pickGenre(m.genres), m.poster_url, `/movies/${m.id}`, list.length)));
-      topGames .forEach(g => list.push(place('game',  g.title, pickGenre(g.genres), g.poster_url, `/games/${g.id}`,  list.length)));
+      topTracks.forEach(t => list.push(place('music', t.name,  pickGenre(t.genres), t.image_url ?? '',            `/music/${t.id}`,  list.length)));
+      topMovies.forEach(m => list.push(place('movie', m.title, pickGenre(m.genres), m.poster_url ?? '',           `/movies/${m.id}`, list.length)));
+      topGames .forEach(g => list.push(place('game',  g.title, pickGenre(g.genres), thumbUrl(g.poster_url, 200) ?? '', `/games/${g.id}`,  list.length)));
 
       dots.current   = list;
       elRefs.current = new Array(list.length).fill(null);
       setReady(true);
+
+      // Progressive insertion — one card at a time every 130ms.
+      // Visual goal: cards trickle in one-by-one like bubbles popping. Total time
+      // for 30 cards ≈ 4 seconds, which reads as a playful "loading sequence"
+      // rather than a slow page.
+      let i = 0;
+      const stepper = () => {
+        i += 1;
+        setVisibleCount(i);
+        if (i < list.length) setTimeout(stepper, 130);
+      };
+      setTimeout(stepper, 80);
     });
   }, []);
 
@@ -146,8 +160,8 @@ export default function BounceScene() {
   return (
     <div ref={boxRef} className="relative w-full h-full overflow-hidden">
 
-      {/* Floating cards */}
-      {ready && dots.current.map((d, i) => {
+      {/* Floating cards — rendered progressively via visibleCount */}
+      {ready && dots.current.slice(0, visibleCount).map((d, i) => {
         const match = !q
           || d.title.toLowerCase().includes(ql)
           || d.sub.toLowerCase().includes(ql);
@@ -159,8 +173,7 @@ export default function BounceScene() {
             className={`absolute top-0 left-0 ${match ? 'opacity-100' : 'opacity-[0.06]'}`}
             style={{
               width: CW, height: CH, willChange: 'transform', textDecoration: 'none',
-              animation: 'card-fade-in 0.5s ease-out both',
-              animationDelay: `${i * 25}ms`,
+              animation: 'card-fade-in 0.4s ease-out both',
               transition: 'opacity 0.3s ease',
             }}
           >

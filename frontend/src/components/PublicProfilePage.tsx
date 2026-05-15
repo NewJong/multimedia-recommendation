@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import FriendButton from './FriendButton';
 import { API_BASE } from '../lib/api';
+import { thumbUrl } from '../lib/format';
 import { VisitorSocialRow } from './SocialLinks';
 import { useAuth } from '../hooks/useAuth';
 
@@ -297,7 +298,7 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                             <a key={p.id} href={`/games/${p.id}`}
                               className="flex items-center gap-2.5 p-2 rounded-lg bg-emerald-500/8 border border-emerald-500/20 hover:bg-emerald-500/15 transition-colors group">
                               {p.poster_url
-                                ? <img src={p.poster_url} alt="" className="w-11 h-11 rounded object-cover flex-shrink-0" />
+                                ? <img src={thumbUrl(p.poster_url, 200) ?? ''} alt="" loading="lazy" className="w-11 h-11 rounded object-cover flex-shrink-0" />
                                 : <div className="w-11 h-11 rounded bg-zinc-800 flex items-center justify-center text-base flex-shrink-0">🎮</div>}
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm text-emerald-200 font-medium truncate group-hover:text-white leading-tight">{p.title}</p>
@@ -366,7 +367,7 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
           {likes.games.map((g: any) => (
             <a key={g.id} href={`/games/${g.id}`} className="group block">
               <div className="aspect-square rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 group-hover:border-emerald-500/40 transition-colors">
-                {g.poster_url ? <img src={g.poster_url} alt={g.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <div className="w-full h-full flex items-center justify-center text-4xl">🎮</div>}
+                {g.poster_url ? <img src={thumbUrl(g.poster_url, 420) ?? ''} alt={g.title} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> : <div className="w-full h-full flex items-center justify-center text-4xl">🎮</div>}
               </div>
               <p className="mt-2 text-sm font-medium text-white truncate group-hover:text-emerald-200 transition-colors">{g.title}</p>
               <p className="text-xs text-zinc-500">{g.release_year || ''}</p>

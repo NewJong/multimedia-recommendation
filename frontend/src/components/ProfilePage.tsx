@@ -4,6 +4,7 @@ import { Heart } from 'lucide-react';
 import { auth, googleProvider } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { API_BASE } from '../lib/api';
+import { thumbUrl } from '../lib/format';
 import { OwnSocialRow, type Socials } from './SocialLinks';
 
 interface Likes { tracks: any[]; movies: any[]; games: any[] }
@@ -83,7 +84,10 @@ function GameCard({ g, onUnlike }: { g: any; onUnlike: (id: number) => void }) {
     <a href={`/games/${g.id}`} className="group relative block">
       <div className="relative aspect-square rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800 group-hover:border-emerald-500/40 transition-colors">
         {g.poster_url
-          ? <img src={g.poster_url} alt={g.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+          ? <img src={thumbUrl(g.poster_url, 420) ?? ''} alt={g.title} loading="lazy" decoding="async"
+              className="w-full h-full object-cover group-hover:scale-105 transition-all duration-300"
+              onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1'; }}
+              style={{ opacity: 0 }} />
           : <div className="w-full h-full flex items-center justify-center text-4xl">🎮</div>}
         <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-3">
           {genres.length > 0 && (

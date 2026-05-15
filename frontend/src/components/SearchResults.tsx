@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { API_BASE } from '../lib/api';
+import { thumbUrl } from '../lib/format';
 
 interface Track { id: number; name: string; artist: string; genres: string[]; image_url: string; listeners: number; }
 interface Movie { id: number; title: string; genres: string[]; poster_url: string; rating: number; release_year: number; director: string; }
@@ -48,7 +49,7 @@ function GameCard({ g }: { g: Game }) {
   return (
     <a href={`/games/${g.id}`} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800/60 hover:border-emerald-500/40 hover:bg-emerald-500/5 transition-all group">
       {g.poster_url
-        ? <img src={g.poster_url} alt={g.title} className="w-[72px] h-10 rounded-lg object-cover flex-shrink-0" />
+        ? <img src={thumbUrl(g.poster_url, 200) ?? ''} alt={g.title} loading="lazy" decoding="async" className="w-[72px] h-10 rounded-lg object-cover flex-shrink-0" />
         : <div className="w-[72px] h-10 rounded-lg bg-zinc-800 flex items-center justify-center text-xl flex-shrink-0">🎮</div>
       }
       <div className="min-w-0">

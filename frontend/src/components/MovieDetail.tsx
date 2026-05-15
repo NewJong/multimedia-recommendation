@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import LikeButton from './LikeButton';
 import FriendsLiked from './FriendsLiked';
+import CrossEchoes from './CrossEchoes';
 import { API_BASE } from '../lib/api';
 import { fmtRuntime, fmtMoney } from '../lib/format';
 
@@ -169,6 +170,8 @@ export default function MovieDetail({ id }: { id: number }) {
             )}
           </div>
         )}
+
+        <CrossEchoes anchorType="movie" anchorId={movie.id} />
       </div>
     </div>
   );

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import LikeButton from './LikeButton';
 import FriendsLiked from './FriendsLiked';
+import CrossEchoes from './CrossEchoes';
 import { API_BASE } from '../lib/api';
+import { thumbUrl } from '../lib/format';
 
 interface Game {
   id: number; title: string; genres: string[]; tags: string[];
@@ -77,7 +79,7 @@ export default function GameDetail({ id }: { id: number }) {
         {/* Hero */}
         <div className="flex flex-col sm:flex-row gap-8 mb-8">
           {game.poster_url
-            ? <img src={game.poster_url} alt={game.title}
+            ? <img src={thumbUrl(game.poster_url, 800) ?? ''} alt={game.title}
                 className="w-60 rounded-xl object-cover shadow-2xl shadow-black/60 flex-shrink-0"
                 style={{ aspectRatio: '16/9' }} />
             : <div className="w-60 h-36 rounded-xl bg-zinc-900 flex items-center justify-center text-5xl flex-shrink-0">🎮</div>
@@ -158,6 +160,8 @@ export default function GameDetail({ id }: { id: number }) {
             <p className="text-zinc-300 text-sm leading-relaxed">{game.description}</p>
           </div>
         )}
+
+        <CrossEchoes anchorType="game" anchorId={game.id} />
       </div>
     </div>
   );

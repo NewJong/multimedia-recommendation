@@ -1,14 +1,25 @@
-import os, json, re
+import os, json, re, asyncio
 import httpx
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
-from database import cached_query
+from database import cached_query, get_conn, serialize_rows
 
 try:
     import anthropic as _anthropic
     _HAS_ANTHROPIC = True
 except ImportError:
     _HAS_ANTHROPIC = False
+
+# Lazy-loaded sentence-transformer used for semantic-supplement to substring search.
+# Imported on first use to avoid blocking startup with the model load (~3-5s).
+_st_model = None
+def _get_st_model():
+    global _st_model
+    if _st_model is None:
+        from sentence_transformers import SentenceTransformer
+        _st_model = SentenceTransformer("sentence-transformers/all-MiniLM-L6-v2")
+    return _st_model
+
 
 LASTFM_KEY    = os.getenv("LASTFM_API_KEY")
 LASTFM_BASE   = "https://ws.audioscrobbler.com/2.0"
@@ -34,6 +45,60 @@ class SearchBody(BaseModel):
     ai: bool = False
 
 
+def _substring_match(q: str, tracks: list, movies: list, games: list):
+    """Literal substring match across titles, artists, directors, genres, tags."""
+    ql = q.lower()
+    def mt(t): return (
+        ql in t["name"].lower() or ql in t.get("artist", "").lower()
+        or any(ql in tag.lower() for tag in t.get("tags", []))
+        or any(ql in g.lower()   for g   in t.get("genres", []))
+    )
+    def mm(m): return (
+        ql in m["title"].lower() or ql in m.get("director", "").lower()
+        or any(ql in g.lower() for g in m.get("genres", []))
+    )
+    def mg(g): return (
+        ql in g["title"].lower()
+        or any(ql in g2.lower()  for g2  in g.get("genres", []))
+        or any(ql in tag.lower() for tag in g.get("tags", []))
+    )
+    return (
+        [t for t in tracks if mt(t)],
+        [m for m in movies if mm(m)],
+        [gm for gm in games if mg(gm)],
+    )
+
+
+def _embedding_match(q: str, tables: tuple[str, ...], top_per_domain: int = 3):
+    """Semantic supplement: embed query, run pgvector cosine for top items per domain.
+    Only queries the tables passed in — skip domains that already have enough substring hits."""
+    if not tables:
+        return {}
+    model = _get_st_model()
+    vec = model.encode(q, normalize_embeddings=True)
+    vec_str = "[" + ",".join(f"{x:.6f}" for x in vec) + "]"
+
+    conn = get_conn()
+    out: dict[str, list] = {t: [] for t in tables}
+    try:
+        with conn.cursor() as cur:
+            for table in tables:
+                cur.execute(f"""
+                    SELECT *, 1 - (embedding <=> %s::vector) AS _score
+                    FROM {table} WHERE embedding IS NOT NULL
+                    ORDER BY embedding <=> %s::vector
+                    LIMIT %s
+                """, (vec_str, vec_str, top_per_domain))
+                rows = [dict(r) for r in cur.fetchall()]
+                for r in rows:
+                    r["_score"] = round(max(0.0, min(1.0, (float(r["_score"]) - 0.5) * 2)) * 100)
+                    r.pop("embedding", None)
+                out[table] = serialize_rows(rows)
+    finally:
+        conn.close()
+    return out
+
+
 @router.post("/search")
 async def search(body: SearchBody):
     q = body.q.strip()
@@ -45,28 +110,38 @@ async def search(body: SearchBody):
     games  = cached_query("games",  "SELECT * FROM games  ORDER BY rating DESC")
 
     if not body.ai:
-        ql = q.lower()
-        def mt(t): return (
-            ql in t["name"].lower() or ql in t.get("artist", "").lower()
-            or any(ql in tag.lower() for tag in t.get("tags", []))
-            or any(ql in g.lower()   for g   in t.get("genres", []))
-        )
-        def mm(m): return (
-            ql in m["title"].lower() or ql in m.get("director", "").lower()
-            or any(ql in g.lower() for g in m.get("genres", []))
-        )
-        def mg(g): return (
-            ql in g["title"].lower()
-            or any(ql in g2.lower()  for g2  in g.get("genres", []))
-            or any(ql in tag.lower() for tag in g.get("tags", []))
-        )
+        # Plain search: substring match first. Semantic supplement only kicks in
+        # for domains where substring found < SPARSE_THRESHOLD hits — that's where
+        # vibe/mood queries ("melancholy night drive") need help. Skipping the
+        # embedding call entirely when substring is dense keeps the common case fast.
+        SPARSE_THRESHOLD = 3
+        sub_t, sub_m, sub_g = _substring_match(q, tracks, movies, games)
+
+        sparse_map = {"tracks": sub_t, "movies": sub_m, "games": sub_g}
+        sparse_tables = tuple(t for t, hits in sparse_map.items() if len(hits) < SPARSE_THRESHOLD)
+
+        emb: dict[str, list] = {}
+        if sparse_tables:
+            try:
+                emb = await asyncio.to_thread(_embedding_match, q, sparse_tables, 3)
+            except Exception:
+                emb = {}
+
+        def merge(sub: list, emb_list: list, sub_limit: int = 8, emb_limit: int = 3):
+            seen = {x["id"] for x in sub[:sub_limit]}
+            extras = [e for e in emb_list if e["id"] not in seen][:emb_limit]
+            return sub[:sub_limit] + extras
+
         return {
-            "tracks":      [t for t in tracks if mt(t)][:12],
-            "movies":      [m for m in movies if mm(m)][:12],
-            "games":       [gm for gm in games if mg(gm)][:12],
+            "tracks":      merge(sub_t, emb.get("tracks", [])),
+            "movies":      merge(sub_m, emb.get("movies", [])),
+            "games":       merge(sub_g, emb.get("games", [])),
             "explanation": None,
         }
 
+    # AI mode = Claude-driven smart pick. Claude reads top-40 of each catalog and
+    # selects up to 5 best-matching per category with reasoning. Slower and costs
+    # ~$0.001 per query, but the explanation is the wow-factor on demo.
     if not _HAS_ANTHROPIC:
         raise HTTPException(status_code=503, detail="anthropic package not installed")
     if not ANTHROPIC_KEY or ANTHROPIC_KEY in ("soon", ""):
@@ -97,7 +172,6 @@ async def search(body: SearchBody):
     try:
         result = json.loads(raw)
     except Exception:
-        # Try to recover: strip ```json fences or extract the first {...} block.
         m = re.search(r"\{.*\}", raw, re.DOTALL)
         if m:
             try:

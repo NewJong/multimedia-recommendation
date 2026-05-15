@@ -33,3 +33,20 @@ app.include_router(search.router)
 app.include_router(recommendations.router)
 app.include_router(compare.router)
 app.include_router(cross.router)
+
+
+@app.on_event("startup")
+def _warmup_embedding_model():
+    """Load the sentence-transformer in a background thread at startup so that
+    the first /search call doesn't block for 3-5s while the model imports."""
+    from threading import Thread
+
+    def go():
+        try:
+            from routers.search import _get_st_model
+            _get_st_model()
+            print("[startup] sentence-transformer warmed")
+        except Exception as e:
+            print(f"[startup] embedding warmup failed: {e}")
+
+    Thread(target=go, daemon=True).start()

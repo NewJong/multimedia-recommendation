@@ -1,121 +1,62 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { API_BASE } from '../lib/api';
+import { thumbUrl } from '../lib/format';
+import CrossEchoes from './CrossEchoes';
 
-type AnchorType = 'track' | 'movie' | 'game';
+type ItemType = 'track' | 'movie' | 'game';
 
-interface Anchor {
+interface Like {
   id: number;
-  // tracks
   name?: string; artist?: string; image_url?: string;
-  // movies / games
   title?: string; poster_url?: string;
   release_year?: number;
-  genres?: string[];
 }
 
-interface CrossItem extends Anchor {
-  _score: number;
-  _shared_tags: string[];
+interface LikesResponse {
+  tracks: Like[];
+  movies: Like[];
+  games:  Like[];
 }
 
-interface CrossResponse {
-  anchor: Anchor;
-  tracks?: CrossItem[];
-  movies?: CrossItem[];
-  games?: CrossItem[];
-}
-
-const TYPE_META: Record<AnchorType, { label: string; plural: 'tracks' | 'movies' | 'games'; accent: string; chip: string; ring: string; route: string; icon: string }> = {
-  track: { label: 'Music',  plural: 'tracks', accent: 'text-violet-300',  chip: 'bg-violet-500/20 text-violet-300 border-violet-500/30',  ring: 'ring-violet-500/40',  route: '/music',  icon: '🎵' },
-  movie: { label: 'Movies', plural: 'movies', accent: 'text-rose-300',    chip: 'bg-rose-500/20 text-rose-300 border-rose-500/30',        ring: 'ring-rose-500/40',    route: '/movies', icon: '🎬' },
-  game:  { label: 'Games',  plural: 'games',  accent: 'text-emerald-300', chip: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30', ring: 'ring-emerald-500/40', route: '/games',  icon: '🎮' },
+const TYPE_META: Record<ItemType, { label: string; plural: 'tracks' | 'movies' | 'games'; accent: string; chip: string; chipActive: string; icon: string }> = {
+  track: { label: 'Music',  plural: 'tracks', accent: 'text-violet-300',  chip: 'border-violet-500/30',  chipActive: 'bg-violet-500/20 text-violet-300 border-violet-500/40',    icon: '🎵' },
+  movie: { label: 'Movies', plural: 'movies', accent: 'text-rose-300',    chip: 'border-rose-500/30',    chipActive: 'bg-rose-500/20 text-rose-300 border-rose-500/40',          icon: '🎬' },
+  game:  { label: 'Games',  plural: 'games',  accent: 'text-emerald-300', chip: 'border-emerald-500/30', chipActive: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40', icon: '🎮' },
 };
 
-const OTHER_TYPES: Record<AnchorType, AnchorType[]> = {
-  track: ['movie', 'game'],
-  movie: ['track', 'game'],
-  game:  ['track', 'movie'],
-};
-
-function itemTitle(it: Anchor): string { return it.title ?? it.name ?? '—'; }
-function itemImage(it: Anchor): string | undefined { return it.poster_url ?? it.image_url; }
-function itemSubtitle(it: Anchor, type: AnchorType): string {
+function likeTitle(it: Like): string { return it.title ?? it.name ?? '—'; }
+function likeImage(it: Like): string | null { return thumbUrl(it.poster_url ?? it.image_url, 420); }
+function likeSubtitle(it: Like, type: ItemType): string {
   if (type === 'track') return it.artist ?? '';
   return it.release_year ? String(it.release_year) : '';
 }
 
 
-function AnchorThumb({ it, type, active, onClick }: { it: Anchor; type: AnchorType; active: boolean; onClick: () => void }) {
-  const meta = TYPE_META[type];
-  const img = itemImage(it);
-  return (
-    <button onClick={onClick}
-      className={`group relative rounded-xl overflow-hidden border-2 transition-all duration-200 ${active ? `border-cyan-400 ${meta.ring} ring-2` : 'border-transparent hover:border-zinc-700'}`}
-      style={{ width: 110 }}>
-      <div className="aspect-square bg-zinc-900">
-        {img
-          ? <img src={img} alt="" className="w-full h-full object-cover" loading="lazy" />
-          : <div className="w-full h-full flex items-center justify-center text-2xl">{meta.icon}</div>}
-      </div>
-      <p className="text-white text-[11px] font-medium truncate px-1.5 pt-1 leading-tight">{itemTitle(it)}</p>
-      <p className="text-zinc-500 text-[10px] truncate px-1.5 pb-1.5 leading-tight">{itemSubtitle(it, type)}</p>
-    </button>
-  );
-}
-
-
-function ResultCard({ it, type }: { it: CrossItem; type: AnchorType }) {
-  const meta = TYPE_META[type];
-  const img = itemImage(it);
-  return (
-    <a href={`${meta.route}/${it.id}`} className="group block rounded-xl overflow-hidden bg-zinc-900/60 border border-zinc-800 hover:border-cyan-500/40 transition-colors">
-      <div className="aspect-square bg-zinc-900 overflow-hidden relative">
-        {img
-          ? <img src={img} alt={itemTitle(it)} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" loading="lazy" />
-          : <div className="w-full h-full flex items-center justify-center text-3xl">{meta.icon}</div>}
-        <div className="absolute top-2 left-2 bg-black/75 backdrop-blur rounded-md px-2 py-0.5 flex items-center gap-1">
-          <span className="text-cyan-400 text-xs font-bold">✦</span>
-          <span className="text-white text-xs font-semibold">{it._score}%</span>
-        </div>
-      </div>
-      <div className="p-2.5">
-        <p className={`text-sm font-semibold leading-tight truncate ${meta.accent} group-hover:text-white transition-colors`}>{itemTitle(it)}</p>
-        <p className="text-zinc-500 text-xs truncate mt-0.5">{itemSubtitle(it, type)}</p>
-        {it._shared_tags.length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-2">
-            {it._shared_tags.map(t => (
-              <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full border border-cyan-500/30 bg-cyan-500/10 text-cyan-300">{t}</span>
-            ))}
-          </div>
-        )}
-      </div>
-    </a>
-  );
-}
-
-
+/**
+ * Discover: pick any item you've liked, see how it echoes in the other two
+ * domains. The page reuses CrossEchoes for the result rendering, so the layout
+ * is identical to the detail pages — predictability over novelty. The only
+ * new piece is the anchor picker (dropdown with thumbnails, searchable).
+ */
 export default function DiscoverPage() {
   const { user, uid, loading: authLoading } = useAuth();
-  const [tab, setTab] = useState<AnchorType>('track');
-  const [likes, setLikes] = useState<{ tracks: Anchor[]; movies: Anchor[]; games: Anchor[] }>({ tracks: [], movies: [], games: [] });
+  const [likes, setLikes]             = useState<LikesResponse>({ tracks: [], movies: [], games: [] });
   const [likesLoaded, setLikesLoaded] = useState(false);
-  const [anchorId, setAnchorId] = useState<number | null>(null);
-  const [cross, setCross] = useState<CrossResponse | null>(null);
-  const [crossLoading, setCrossLoading] = useState(false);
-  const [crossErr, setCrossErr] = useState<string | null>(null);
+  const [tab, setTab]                 = useState<ItemType>('movie');
+  const [anchorId, setAnchorId]       = useState<number | null>(null);
 
   useEffect(() => {
     if (!uid) { setLikes({ tracks: [], movies: [], games: [] }); setLikesLoaded(false); return; }
     fetch(`${API_BASE}/likes/${uid}`)
       .then(r => r.json())
-      .then(d => {
+      .then((d: LikesResponse) => {
         setLikes(d);
-        // pick first non-empty tab and first anchor
-        const first: AnchorType | null =
-          d.tracks?.length ? 'track' : d.movies?.length ? 'movie' : d.games?.length ? 'game' : null;
+        // Pick first non-empty domain + first item as default.
+        const first: ItemType | null =
+          d.movies?.length ? 'movie' : d.tracks?.length ? 'track' : d.games?.length ? 'game' : null;
         if (first) {
           setTab(first);
           setAnchorId(d[TYPE_META[first].plural][0].id);
@@ -125,33 +66,29 @@ export default function DiscoverPage() {
       .finally(() => setLikesLoaded(true));
   }, [uid]);
 
-  const currentAnchors = likes[TYPE_META[tab].plural];
+  // Likes available in the currently active tab.
+  const currentLikes = likes[TYPE_META[tab].plural];
+  const anchor       = currentLikes.find(a => a.id === anchorId) ?? null;
 
-  // Reset anchor when tab changes — pick first item of that tab
+  // When tab changes, ensure the anchor belongs to the new tab.
   useEffect(() => {
-    if (currentAnchors.length === 0) { setAnchorId(null); return; }
-    if (!currentAnchors.some(a => a.id === anchorId)) {
-      setAnchorId(currentAnchors[0].id);
+    if (currentLikes.length === 0) { setAnchorId(null); return; }
+    if (!currentLikes.some(a => a.id === anchorId)) {
+      setAnchorId(currentLikes[0].id);
     }
-  }, [tab, currentAnchors]);
+  }, [tab, currentLikes]);
 
-  // Fetch cross when anchor changes
-  useEffect(() => {
-    if (anchorId == null) { setCross(null); return; }
-    setCrossLoading(true);
-    setCrossErr(null);
-    fetch(`${API_BASE}/cross/${tab}/${anchorId}?k=5`)
-      .then(async r => {
-        if (!r.ok) {
-          const e = await r.json().catch(() => ({}));
-          throw new Error(e.detail || `HTTP ${r.status}`);
-        }
-        return r.json();
-      })
-      .then((d: CrossResponse) => setCross(d))
-      .catch(e => setCrossErr(e.message))
-      .finally(() => setCrossLoading(false));
-  }, [tab, anchorId]);
+  function pickRandom() {
+    if (currentLikes.length === 0) return;
+    let pick = currentLikes[Math.floor(Math.random() * currentLikes.length)];
+    // Avoid landing on the same one twice in a row when possible.
+    if (currentLikes.length > 1 && pick.id === anchorId) {
+      pick = currentLikes[(currentLikes.findIndex(a => a.id === anchorId) + 1) % currentLikes.length];
+    }
+    setAnchorId(pick.id);
+  }
+
+  const totalLikes = likes.tracks.length + likes.movies.length + likes.games.length;
 
   if (authLoading) return <div className="py-24 text-center text-zinc-600">Loading…</div>;
 
@@ -160,8 +97,7 @@ export default function DiscoverPage() {
       <p className="text-6xl mb-4">✦</p>
       <h1 className="text-2xl font-bold text-white mb-2">Cross-domain Discovery</h1>
       <p className="text-zinc-500 mb-8 leading-relaxed">
-        Find movies, games and tracks that resonate with what you already love —
-        across different media, ranked by semantic similarity.
+        Pick any of your likes — see the closest tracks, movies and games from other domains by vibe.
       </p>
       <button onClick={() => signInWithPopup(auth, googleProvider)}
         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-zinc-700 hover:border-zinc-500 text-sm text-zinc-200 transition-all">
@@ -170,16 +106,14 @@ export default function DiscoverPage() {
     </div>
   );
 
-  const totalLikes = likes.tracks.length + likes.movies.length + likes.games.length;
-
   return (
-    <div className="max-w-6xl mx-auto px-6 py-8">
+    <div className="max-w-5xl mx-auto px-6 py-8">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-white mb-1">
+        <h1 className="text-2xl font-bold">
           <span className="bg-gradient-to-r from-cyan-300 via-violet-300 to-rose-300 bg-clip-text text-transparent">Cross-domain Discovery</span>
         </h1>
-        <p className="text-zinc-500 text-sm">
-          Pick any of your likes — we'll surface the closest items from the other two domains using semantic embeddings.
+        <p className="text-zinc-500 text-sm mt-1">
+          Pick anything you've liked — see the closest items from the other two domains, ranked by semantic similarity.
         </p>
       </div>
 
@@ -193,89 +127,143 @@ export default function DiscoverPage() {
 
       {likesLoaded && totalLikes > 0 && (
         <>
-          {/* Type tabs */}
-          <div className="flex items-center gap-1 mb-4 border-b border-zinc-800/60 pb-1">
-            {(['track', 'movie', 'game'] as AnchorType[]).map(t => {
-              const meta = TYPE_META[t];
+          {/* Domain tabs — only enabled where the user has at least one like. */}
+          <div className="flex items-center gap-1.5 mb-4">
+            {(['movie', 'track', 'game'] as ItemType[]).map(t => {
+              const meta  = TYPE_META[t];
               const count = likes[meta.plural].length;
               return (
                 <button key={t} onClick={() => setTab(t)} disabled={count === 0}
-                  className={`relative px-3 py-1.5 rounded-t-lg text-sm font-medium transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed ${tab === t ? meta.accent : 'text-zinc-500 hover:text-zinc-300'}`}>
-                  {meta.label}
-                  <span className="ml-1.5 text-xs text-zinc-600">{count}</span>
-                  {tab === t && <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400 rounded-full" />}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border disabled:opacity-30 disabled:cursor-not-allowed ${
+                    tab === t ? meta.chipActive : `text-zinc-500 border-zinc-800 hover:border-zinc-700`
+                  }`}>
+                  {meta.label} <span className="ml-1 opacity-60">{count}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* Anchor row */}
-          <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Anchor — your {TYPE_META[tab].label.toLowerCase()}</p>
-          {currentAnchors.length === 0 ? (
+          {/* Anchor picker + selected anchor card */}
+          {currentLikes.length === 0 ? (
             <p className="text-zinc-600 text-sm py-8">Nothing liked in this domain yet.</p>
           ) : (
-            <div className="flex flex-wrap gap-2 mb-8">
-              {currentAnchors.map(a => (
-                <AnchorThumb key={a.id} it={a} type={tab} active={a.id === anchorId} onClick={() => setAnchorId(a.id)} />
-              ))}
-            </div>
+            <AnchorPicker
+              type={tab}
+              likes={currentLikes}
+              anchor={anchor}
+              onPick={setAnchorId}
+              onRandom={pickRandom}
+            />
           )}
 
-          {/* Results */}
-          {anchorId != null && (
-            <>
-              {crossLoading && (
-                <div className="flex flex-col gap-8">
-                  {OTHER_TYPES[tab].map(o => (
-                    <div key={o}>
-                      <div className="h-3 w-24 bg-zinc-800 rounded animate-pulse mb-3" />
-                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                        {[1,2,3,4,5].map(i => (
-                          <div key={i} className="animate-pulse rounded-xl overflow-hidden bg-zinc-900 border border-zinc-800" style={{ animationDelay: `${i*60}ms` }}>
-                            <div className="aspect-square bg-zinc-800" />
-                            <div className="p-2.5 space-y-2">
-                              <div className="h-3 bg-zinc-800 rounded w-3/4" />
-                              <div className="h-2 bg-zinc-800 rounded w-1/2" />
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {crossErr && (
-                <div className="bg-red-950/30 border border-red-800/50 rounded-xl p-4 text-red-400 text-sm">
-                  {crossErr}
-                  {crossErr.includes('embedding') && (
-                    <p className="text-red-300/70 text-xs mt-2">Run <code className="font-mono">python backend/evaluation/cross_domain/embed_items.py</code> to generate embeddings.</p>
-                  )}
-                </div>
-              )}
-
-              {!crossLoading && !crossErr && cross && (
-                <div className="flex flex-col gap-10">
-                  {OTHER_TYPES[tab].map(o => {
-                    const items = (cross[TYPE_META[o].plural] ?? []) as CrossItem[];
-                    if (items.length === 0) return null;
-                    return (
-                      <div key={o}>
-                        <div className="flex items-baseline gap-2 mb-3">
-                          <h2 className={`text-sm font-semibold uppercase tracking-widest ${TYPE_META[o].accent}`}>{TYPE_META[o].label}</h2>
-                          <span className="text-zinc-700 text-xs">{items.length} closest</span>
-                        </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                          {items.map(it => <ResultCard key={it.id} it={it} type={o} />)}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </>
+          {/* Reuse the same cross-domain layout as detail pages. */}
+          {anchor && anchorId != null && (
+            <CrossEchoes anchorType={tab} anchorId={anchorId} />
           )}
         </>
+      )}
+    </div>
+  );
+}
+
+
+/**
+ * Custom searchable combobox with thumbnails. Native <select> can't show
+ * posters, and a thumb grid would be massive for users with 50+ likes — this
+ * compact dropdown scales to any library size and gives the demo a polished feel.
+ */
+function AnchorPicker({ type, likes, anchor, onPick, onRandom }: {
+  type:     ItemType;
+  likes:    Like[];
+  anchor:   Like | null;
+  onPick:   (id: number) => void;
+  onRandom: () => void;
+}) {
+  const [open, setOpen]     = useState(false);
+  const [query, setQuery]   = useState('');
+  const wrapRef             = useRef<HTMLDivElement | null>(null);
+  const inputRef            = useRef<HTMLInputElement | null>(null);
+  const meta = TYPE_META[type];
+
+  // Close on outside click.
+  useEffect(() => {
+    if (!open) return;
+    function handle(e: MouseEvent) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handle);
+    return () => document.removeEventListener('mousedown', handle);
+  }, [open]);
+
+  // Auto-focus the search box when the dropdown opens.
+  useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return likes;
+    const q = query.toLowerCase();
+    return likes.filter(l => likeTitle(l).toLowerCase().includes(q) || (l.artist?.toLowerCase().includes(q) ?? false));
+  }, [likes, query]);
+
+  return (
+    <div ref={wrapRef} className="relative mb-6">
+      <div className="flex items-stretch gap-2">
+        {/* The big anchor card itself is the dropdown trigger. */}
+        <button onClick={() => setOpen(v => !v)}
+          className={`flex-1 flex items-center gap-3 p-3 rounded-xl bg-zinc-900/60 border ${meta.chip} hover:bg-zinc-900 transition-colors text-left`}>
+          {anchor ? (
+            <>
+              {likeImage(anchor)
+                ? <img src={likeImage(anchor)!} alt="" className="w-12 h-12 rounded-md object-cover flex-shrink-0 bg-zinc-900" />
+                : <div className="w-12 h-12 rounded-md bg-zinc-900 flex items-center justify-center text-xl flex-shrink-0">{meta.icon}</div>}
+              <div className="min-w-0 flex-1">
+                <p className={`text-[10px] uppercase tracking-widest ${meta.accent} font-semibold mb-0.5`}>Anchor · your liked {meta.label.slice(0, -1).toLowerCase()}</p>
+                <p className="text-white text-sm font-semibold truncate">{likeTitle(anchor)}</p>
+                <p className="text-zinc-500 text-xs truncate">{likeSubtitle(anchor, type)}</p>
+              </div>
+              <svg className={`w-4 h-4 text-zinc-500 transition-transform ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </>
+          ) : (
+            <span className="text-zinc-500 text-sm">Pick a {meta.label.slice(0, -1).toLowerCase()} you liked…</span>
+          )}
+        </button>
+
+        <button onClick={onRandom} title="Random pick"
+          className={`px-3.5 rounded-xl bg-zinc-900/60 border ${meta.chip} hover:bg-zinc-900 text-zinc-300 text-sm font-medium transition-colors`}>
+          🎲
+        </button>
+      </div>
+
+      {/* Dropdown */}
+      {open && (
+        <div className="absolute z-30 top-full left-0 right-0 mt-2 rounded-xl bg-zinc-950 border border-zinc-800 shadow-2xl shadow-black/60 overflow-hidden">
+          <div className="p-2 border-b border-zinc-800">
+            <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)}
+              placeholder={`Search your ${likes.length} liked ${meta.label.toLowerCase()}…`}
+              className="w-full bg-zinc-900 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-600 focus:outline-none focus:border-zinc-600" />
+          </div>
+          <div className="max-h-72 overflow-y-auto">
+            {filtered.length === 0 ? (
+              <p className="text-zinc-600 text-xs text-center py-6">No matches.</p>
+            ) : filtered.map(l => (
+              <button key={l.id}
+                onClick={() => { onPick(l.id); setOpen(false); setQuery(''); }}
+                className={`w-full flex items-center gap-2.5 px-3 py-2 text-left transition-colors ${
+                  l.id === anchor?.id ? 'bg-zinc-900' : 'hover:bg-zinc-900/70'
+                }`}>
+                {likeImage(l)
+                  ? <img src={likeImage(l)!} alt="" loading="lazy" className="w-8 h-8 rounded object-cover flex-shrink-0 bg-zinc-900" />
+                  : <div className="w-8 h-8 rounded bg-zinc-900 flex items-center justify-center text-sm flex-shrink-0">{meta.icon}</div>}
+                <div className="min-w-0 flex-1">
+                  <p className="text-white text-sm truncate">{likeTitle(l)}</p>
+                  <p className="text-zinc-500 text-xs truncate">{likeSubtitle(l, type)}</p>
+                </div>
+                {l.id === anchor?.id && <span className={`text-xs ${meta.accent}`}>•</span>}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
     </div>
   );

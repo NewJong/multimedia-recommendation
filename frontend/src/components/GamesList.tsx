@@ -5,6 +5,7 @@ import { useLikes } from '../hooks/useLikes';
 import { useRecommendations } from '../hooks/useRecommendations';
 import { API_BASE } from '../lib/api';
 import { cacheGet, cachedFetch } from '../lib/cache';
+import { thumbUrl } from '../lib/format';
 import GenreFilters from './list/GenreFilters';
 import LoadMore from './list/LoadMore';
 import SortTabs from './list/SortTabs';
@@ -32,8 +33,10 @@ function GameCard({ g, index, liked, onToggle, recMeta }: { g: Game; index: numb
       style={{ animation: 'card-in 0.35s ease both', animationDelay: `${Math.min(index * 30, 600)}ms`, textDecoration: 'none' }}>
       <div className="relative aspect-video rounded-xl overflow-hidden bg-zinc-900 mb-2.5 shadow-md">
         {g.poster_url
-          ? <img src={g.poster_url} alt={g.title} loading="lazy" decoding="async"
-              className="w-full h-full object-cover will-change-transform group-hover:scale-105 transition-transform duration-500" />
+          ? <img src={thumbUrl(g.poster_url, 600) ?? ''} alt={g.title} loading="lazy" decoding="async"
+              className="w-full h-full object-cover will-change-transform group-hover:scale-105 transition-all duration-500"
+              onLoad={e => { (e.currentTarget as HTMLImageElement).style.opacity = '1'; }}
+              style={{ opacity: 0 }} />
           : <div className="w-full h-full flex items-center justify-center text-zinc-700 text-4xl">🎮</div>
         }
         <div className="absolute top-2 left-2 flex gap-1.5">

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import LikeButton from './LikeButton';
 import FriendsLiked from './FriendsLiked';
+import CrossEchoes from './CrossEchoes';
 import { API_BASE } from '../lib/api';
 import { fmtCompact, fmtDuration } from '../lib/format';
 
@@ -113,6 +114,8 @@ export default function TrackDetail({ id }: { id: number }) {
             <p className="text-zinc-300 text-sm leading-relaxed">{track.summary}</p>
           </div>
         )}
+
+        <CrossEchoes anchorType="track" anchorId={track.id} />
 
       </div>
     </div>
