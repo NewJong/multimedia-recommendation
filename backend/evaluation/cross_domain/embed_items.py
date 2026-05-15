@@ -57,7 +57,6 @@ LLM_KEY     = os.getenv("ANTHROPIC_API_KEY")
 EMBED_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 LLM_MODEL   = "claude-haiku-4-5-20251001"
 
-# System prompt is fixed across all calls — Claude treats every item the same way.
 VIBE_SYSTEM = """You are a semantic normalizer for a multimedia recommendation system.
 
 Given a music track, movie, or video game's metadata, write a SINGLE PARAGRAPH (60-90 words) describing its EXPERIENTIAL essence:
@@ -172,14 +171,11 @@ def main() -> None:
 
                 title = row.get("title") or row.get("name") or f"id={row['id']}"
                 print(f"  [{i}/{len(rows)}] {title[:55]}")
-                # In pilot/sample mode, show every vibe so user can eyeball quality.
-                # In full mode, show only first 2 per domain.
                 if args.sample > 0 or i <= 2:
                     print(f"      VIBE: {vibe}")
     finally:
         conn.close()
 
-    # Cost estimate (Haiku 4.5 pricing: $1/M in, $5/M out as of 2026-01).
     cost = (total_in / 1_000_000) * 1.0 + (total_out / 1_000_000) * 5.0
     print(f"\nTokens — in: {total_in:,} · out: {total_out:,} · est. cost: ${cost:.4f}")
     print("Done.")

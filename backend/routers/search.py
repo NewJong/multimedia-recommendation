@@ -10,8 +10,6 @@ try:
 except ImportError:
     _HAS_ANTHROPIC = False
 
-# Lazy-loaded sentence-transformer used for semantic-supplement to substring search.
-# Imported on first use to avoid blocking startup with the model load (~3-5s).
 _st_model = None
 def _get_st_model():
     global _st_model
@@ -110,10 +108,6 @@ async def search(body: SearchBody):
     games  = cached_query("games",  "SELECT * FROM games  ORDER BY rating DESC")
 
     if not body.ai:
-        # Plain search: substring match first. Semantic supplement only kicks in
-        # for domains where substring found < SPARSE_THRESHOLD hits — that's where
-        # vibe/mood queries ("melancholy night drive") need help. Skipping the
-        # embedding call entirely when substring is dense keeps the common case fast.
         SPARSE_THRESHOLD = 3
         sub_t, sub_m, sub_g = _substring_match(q, tracks, movies, games)
 
@@ -139,9 +133,6 @@ async def search(body: SearchBody):
             "explanation": None,
         }
 
-    # AI mode = Claude-driven smart pick. Claude reads top-40 of each catalog and
-    # selects up to 5 best-matching per category with reasoning. Slower and costs
-    # ~$0.001 per query, but the explanation is the wow-factor on demo.
     if not _HAS_ANTHROPIC:
         raise HTTPException(status_code=503, detail="anthropic package not installed")
     if not ANTHROPIC_KEY or ANTHROPIC_KEY in ("soon", ""):

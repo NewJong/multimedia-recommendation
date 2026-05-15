@@ -40,11 +40,10 @@ export default function BounceScene() {
   const dots      = useRef<Dot[]>([]);
   const elRefs    = useRef<(HTMLDivElement | null)[]>([]);
   const [ready, setReady]   = useState(false);
-  const [visibleCount, setVisibleCount] = useState(0);  // progressive insertion
+  const [visibleCount, setVisibleCount] = useState(0);  
   const [q, setQ]           = useState('');
   const [aiMode, setAiMode] = useState(false);
 
-  // Fetch all three domains (cached in sessionStorage for instant repeat visits)
   useEffect(() => {
     Promise.all([
       cachedFetch<any[]>('catalog:tracks', `${API_BASE}/tracks`).catch(() => []),
@@ -58,7 +57,6 @@ export default function BounceScene() {
 
       function place(domain: Domain, title: string, sub: string, img: string, href: string, idx: number): Dot {
         let x: number, y: number;
-        // avoid center
         do {
           x = 8 + Math.random() * (W - CW - 16);
           y = 8 + Math.random() * (H - CH - 16);
@@ -82,10 +80,6 @@ export default function BounceScene() {
       elRefs.current = new Array(list.length).fill(null);
       setReady(true);
 
-      // Progressive insertion — one card at a time every 130ms.
-      // Visual goal: cards trickle in one-by-one like bubbles popping. Total time
-      // for 30 cards ≈ 4 seconds, which reads as a playful "loading sequence"
-      // rather than a slow page.
       let i = 0;
       const stepper = () => {
         i += 1;
@@ -96,7 +90,6 @@ export default function BounceScene() {
     });
   }, []);
 
-  // Animation loop
   useEffect(() => {
     if (!ready) return;
 
@@ -123,13 +116,11 @@ export default function BounceScene() {
         d.x += d.vx;
         d.y += d.vy;
 
-        // walls
         if (d.x <= 0)          { d.x = 0;         d.vx =  Math.abs(d.vx); }
         if (d.x + CW >= W)     { d.x = W - CW;    d.vx = -Math.abs(d.vx); }
         if (d.y <= 0)          { d.y = 0;         d.vy =  Math.abs(d.vy); }
         if (d.y + CH >= H)     { d.y = H - CH;    d.vy = -Math.abs(d.vy); }
 
-        // center block
         if (cw > 0 &&
             d.x < cx + cw && d.x + CW > cx &&
             d.y < cy + ch && d.y + CH > cy) {
@@ -160,7 +151,6 @@ export default function BounceScene() {
   return (
     <div ref={boxRef} className="relative w-full h-full overflow-hidden">
 
-      {/* Floating cards — rendered progressively via visibleCount */}
       {ready && dots.current.slice(0, visibleCount).map((d, i) => {
         const match = !q
           || d.title.toLowerCase().includes(ql)
@@ -201,13 +191,11 @@ export default function BounceScene() {
       })}
       <style>{`@keyframes card-fade-in { from { opacity: 0; } to { opacity: 1; } }`}</style>
 
-      {/* Center search */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
         <div
           ref={centerRef}
           className="flex flex-col items-center gap-5 pointer-events-auto"
         >
-          {/* Logo */}
           <div className="text-center select-none">
             <h1 className="text-6xl font-bold text-white tracking-tight">TIOKhor</h1>
             <p className="text-zinc-500 text-sm mt-2">
@@ -215,7 +203,6 @@ export default function BounceScene() {
             </p>
           </div>
 
-          {/* Search */}
           <div className="flex items-center w-96 bg-zinc-900/90 backdrop-blur border border-zinc-700 rounded-2xl shadow-2xl focus-within:border-zinc-500 transition-colors">
             <svg className="ml-3.5 text-zinc-600 w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
@@ -251,7 +238,6 @@ export default function BounceScene() {
             </button>
           </div>
 
-          {/* Domain links */}
           <div className="flex items-center gap-6 text-sm">
             <a href="/music"  className="text-violet-400  hover:text-violet-200  transition-colors font-medium">Music</a>
             <span className="text-zinc-500">·</span>

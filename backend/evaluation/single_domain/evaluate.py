@@ -49,7 +49,6 @@ import random
 from collections import defaultdict
 from pathlib import Path
 
-# ── Setup ─────────────────────────────────────────────────────────────────────
 sys.stdout.reconfigure(encoding="utf-8")
 sys.path.insert(0, str(Path(__file__).parents[1]))
 
@@ -63,28 +62,23 @@ from database import cached_query, _cache
 from routers.recommendations import _build_recommendations
 
 
-# ── Config ────────────────────────────────────────────────────────────────────
-SEEDS = [42, 100, 200, 300, 400]    # 5 різних посівів для оцінки стабільності
-SAMPLE_SIZE = 7                      # лайків на тестового юзера (7 = sweet spot:
-                                     # Hip-Hop має 12 треків → 12-7=5 GT, інші більше)
-K_VALUES = [5, 10]                   # рахуємо @K для цих K
-FINAL_SEED = 42                      # яким seed залишити DB-стан після всього
+SEEDS = [42, 100, 200, 300, 400]    
+SAMPLE_SIZE = 7                     
+                                    
+K_VALUES = [5, 10]                  
+FINAL_SEED = 42                     
 
-# (firebase_uid, display_name, item_type, genre_filter)
 PERSONAS = [
-    # GAMES
     ("test_rpg_fan",        "Test: RPG Fan",        "game",  "RPG"),
     ("test_shooter_fan",    "Test: Shooter Fan",    "game",  "Shooter"),
     ("test_strategy_fan",   "Test: Strategy Fan",   "game",  "Strategy"),
     ("test_indie_gamer",    "Test: Indie Gamer",    "game",  "Indie"),
     ("test_simulation_fan", "Test: Simulation Fan", "game",  "Simulation"),
-    # MOVIES
     ("test_drama_fan",      "Test: Drama Fan",      "movie", "Drama"),
     ("test_comedy_fan",     "Test: Comedy Fan",     "movie", "Comedy"),
     ("test_scifi_fan",      "Test: Sci-Fi Fan",     "movie", "Sci-Fi"),
     ("test_animation_fan",  "Test: Animation Fan",  "movie", "Animation"),
     ("test_crime_fan",      "Test: Crime Fan",      "movie", "Crime"),
-    # TRACKS
     ("test_metal_fan",      "Test: Metal Fan",      "track", "Metal"),
     ("test_hiphop_fan",     "Test: Hip-Hop Fan",    "track", "Hip-Hop"),
     ("test_electronic_fan", "Test: Electronic Fan", "track", "Electronic"),
@@ -105,7 +99,6 @@ ALGOS = [
 ]
 
 
-# ── DB helpers ────────────────────────────────────────────────────────────────
 def get_conn():
     return psycopg2.connect(
         os.getenv("DATABASE_URL"),
@@ -167,7 +160,6 @@ def create_test_users_and_likes(seed: int) -> dict:
     return profiles
 
 
-# ── Metrics ───────────────────────────────────────────────────────────────────
 def precision_at_k(rec_ids: list, ground_truth: set, k: int) -> float:
     """|top_K ∩ GT| / K"""
     top = rec_ids[:k]
@@ -193,7 +185,6 @@ def mrr_at_k(rec_ids: list, ground_truth: set, k: int) -> float:
     return 0.0
 
 
-# ── Algorithms (return item_ids sorted by score, training excluded) ──────────
 def rec_tfidf(uid: str, item_type: str, items: list) -> list[int]:
     cfg = DOMAIN_CONFIG[item_type]
     recs = _build_recommendations(uid, item_type, items, cfg["tag_fields"], cfg["min_df"])
@@ -216,7 +207,6 @@ def rec_random(items: list, training_set: set, seed: int) -> list[int]:
     return [i["id"] for i in pool]
 
 
-# ── Single-seed evaluation ────────────────────────────────────────────────────
 def evaluate_once(profiles: dict, seed: int) -> list[dict]:
     """Один прогін: 15 personas × 3 algo × (P@K, R@K, MRR@K)."""
     _cache.clear()
@@ -250,7 +240,6 @@ def evaluate_once(profiles: dict, seed: int) -> list[dict]:
     return results
 
 
-# ── Multi-seed aggregation ────────────────────────────────────────────────────
 def mean_std(values: list[float]) -> tuple[float, float]:
     if not values:
         return 0.0, 0.0
@@ -300,7 +289,6 @@ def aggregate_per_domain(all_runs: list[list[dict]]) -> dict:
     return dict(out)
 
 
-# ── Reporting ─────────────────────────────────────────────────────────────────
 DOMAIN_TITLE = {"game": "GAMES", "movie": "MOVIES", "track": "TRACKS"}
 
 
@@ -316,7 +304,6 @@ def print_report(overall: dict, per_domain: dict, seeds: list[int], sample_size:
     print(f"  Personas: {len(PERSONAS)}  |  Training size: {sample_size}  |  Seeds: {seeds}")
     print(sep)
 
-    # Per-domain @10
     for domain in ("game", "movie", "track"):
         print(f"\n── {DOMAIN_TITLE[domain]} @10 " + "─" * (80 - len(DOMAIN_TITLE[domain])))
         print(f"  {'Algorithm':20s}  {'Precision@10':>15}  {'Recall@10':>15}  {'MRR@10':>15}")
@@ -329,8 +316,6 @@ def print_report(overall: dict, per_domain: dict, seeds: list[int], sample_size:
                 f"{fmt(d['r@10']['mean'], d['r@10']['std']):>15}  "
                 f"{fmt(d['mrr@10']['mean'], d['mrr@10']['std']):>15}"
             )
-
-    # Overall @5 і @10
     print(f"\n── OVERALL (averaged over 15 personas × {len(seeds)} seeds) " + "─" * 30)
     print(f"  {'Algorithm':20s}  {'P@5':>13}  {'R@5':>13}  {'MRR@5':>13}  {'P@10':>13}  {'R@10':>13}  {'MRR@10':>13}")
     print(f"  {'-'*20}  {'-'*13}  {'-'*13}  {'-'*13}  {'-'*13}  {'-'*13}  {'-'*13}")
@@ -346,7 +331,6 @@ def print_report(overall: dict, per_domain: dict, seeds: list[int], sample_size:
             f"{fmt(d['mrr@10']['mean'], d['mrr@10']['std']):>13}"
         )
 
-    # Lift над baselines
     print(f"\n── LIFT @10 (наш TF-IDF / baseline)" + " " + "─" * 50)
     tfidf = overall["tfidf"]
     pop   = overall["pop"]
@@ -386,7 +370,6 @@ def save_json(all_runs: list[list[dict]], overall: dict, per_domain: dict,
         json.dump(output, f, indent=2, ensure_ascii=False)
 
 
-# ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     print(f"Прогоняємо evaluation з {len(SEEDS)} різними seeds, SAMPLE_SIZE={SAMPLE_SIZE}...\n")
 
@@ -396,23 +379,18 @@ def main():
         profiles = create_test_users_and_likes(seed)
         run_results = evaluate_once(profiles, seed)
         all_runs.append(run_results)
-        # Quick sanity print
         avg_tf = sum(r["tfidf_p@10"] for r in run_results) / len(run_results)
         print(f"    → TF-IDF Precision@10 = {avg_tf:.3f}")
 
-    # Залишаємо DB у відомому стані (seed=FINAL_SEED)
     if SEEDS[-1] != FINAL_SEED:
         print(f"\n  Відновлюємо DB-стан з seed={FINAL_SEED}...")
         create_test_users_and_likes(FINAL_SEED)
 
-    # Aggregate
     overall    = aggregate_overall(all_runs)
     per_domain = aggregate_per_domain(all_runs)
 
-    # Report
     print_report(overall, per_domain, SEEDS, SAMPLE_SIZE)
 
-    # Persist
     out_path = Path(__file__).parent / "results.json"
     save_json(all_runs, overall, per_domain, out_path, SEEDS, SAMPLE_SIZE)
     print(f"✓ Результати (всі {len(SEEDS)} прогонів + agg) → {out_path}")

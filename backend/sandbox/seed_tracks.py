@@ -16,7 +16,6 @@ DB_URL  = os.getenv("DATABASE_URL")
 BASE    = "https://ws.audioscrobbler.com/2.0"
 
 TRACKS = [
-    # Rock
     ("Nirvana",          "Smells Like Teen Spirit"),
     ("Nirvana",          "Come as You Are"),
     ("Pearl Jam",        "Black"),
@@ -43,7 +42,6 @@ TRACKS = [
     ("Green Day",        "American Idiot"),
     ("The Cure",         "Lovesong"),
     ("Depeche Mode",     "Personal Jesus"),
-    # Metal
     ("Metallica",        "Enter Sandman"),
     ("Metallica",        "One"),
     ("Iron Maiden",      "The Trooper"),
@@ -57,12 +55,10 @@ TRACKS = [
     ("System of a Down", "Chop Suey!"),
     ("My Chemical Romance", "Welcome to the Black Parade"),
     ("My Chemical Romance", "Teenagers"),
-    # Punk / Emo
     ("Green Day",        "Good Riddance (Time of Your Life)"),
     ("The Offspring",    "Come Out and Play"),
     ("Blink-182",        "All the Small Things"),
     ("Blink-182",        "What's My Age Again?"),
-    # Hip-Hop
     ("Eminem",           "Lose Yourself"),
     ("Eminem",           "Stan"),
     ("Kendrick Lamar",   "HUMBLE."),
@@ -73,7 +69,6 @@ TRACKS = [
     ("Nas",              "N.Y. State of Mind"),
     ("J. Cole",          "No Role Modelz"),
     ("Outkast",          "Hey Ya!"),
-    # R&B / Soul
     ("The Weeknd",       "Blinding Lights"),
     ("The Weeknd",       "Save Your Tears"),
     ("Frank Ocean",      "Thinkin Bout You"),
@@ -83,7 +78,6 @@ TRACKS = [
     ("Alicia Keys",      "Fallin'"),
     ("Sam Smith",        "Stay with Me"),
     ("Usher",            "Yeah!"),
-    # Pop
     ("Taylor Swift",     "Blank Space"),
     ("Taylor Swift",     "Shake It Off"),
     ("Ed Sheeran",       "Shape of You"),
@@ -97,7 +91,6 @@ TRACKS = [
     ("Michael Jackson",  "Billie Jean"),
     ("David Bowie",      "Heroes"),
     ("David Bowie",      "Space Oddity"),
-    # Electronic / Dance
     ("Daft Punk",        "Get Lucky"),
     ("Daft Punk",        "One More Time"),
     ("The Chemical Brothers", "Galvanize"),
@@ -105,11 +98,9 @@ TRACKS = [
     ("Massive Attack",   "Unfinished Sympathy"),
     ("Aphex Twin",       "Windowlicker"),
     ("Boards of Canada", "Roygbiv"),
-    # Trip-Hop
     ("Portishead",       "Glory Box"),
     ("Portishead",       "Roads"),
     ("Portishead",       "Sour Times"),
-    # Jazz
     ("Miles Davis",      "So What"),
     ("John Coltrane",    "My Favorite Things"),
     ("Bill Evans",       "Waltz for Debby"),
@@ -117,13 +108,11 @@ TRACKS = [
     ("Chet Baker",       "My Funny Valentine"),
     ("Thelonious Monk",  "'Round Midnight"),
     ("Norah Jones",      "Don't Know Why"),
-    # Folk / Acoustic
     ("Nick Drake",       "Pink Moon"),
     ("Bon Iver",         "Skinny Love"),
     ("Phoebe Bridgers",  "Savior Complex"),
     ("Sufjan Stevens",   "Death with Dignity"),
     ("Iron & Wine",      "Naked as We Came"),
-    # Indie / Dream Pop
     ("Radiohead",        "Creep"),
     ("Radiohead",        "No Surprises"),
     ("The xx",           "Intro"),
@@ -131,15 +120,12 @@ TRACKS = [
     ("Mazzy Star",       "Fade Into You"),
     ("Arcade Fire",      "Wake Up"),
     ("Interpol",         "Obstacle 1"),
-    # Classical / Neoclassical
     ("Ludovico Einaudi", "Experience"),
     ("Max Richter",      "On the Nature of Daylight"),
     ("Explosions in the Sky", "The Birth and Death of the Day"),
-    # Reggae
     ("Bob Marley",       "No Woman No Cry"),
     ("Bob Marley",       "Redemption Song"),
     ("Bob Marley",       "One Love"),
-    # Soul / Blues
     ("Ray Charles",      "Hit the Road Jack"),
     ("B.B. King",        "The Thrill Is Gone"),
     ("Otis Redding",     "Sittin' On The Dock of the Bay"),
@@ -281,16 +267,13 @@ def fetch_track(artist, title):
     }
 
 
-# ── DB ────────────────────────────────────────────────────────────────────────
 conn = psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 cur  = conn.cursor()
 
-# Load existing (name, artist) pairs — normalised to lowercase for comparison
 cur.execute("SELECT LOWER(name) as name, LOWER(artist) as artist FROM tracks")
 existing = {(r["name"], r["artist"]) for r in cur.fetchall()}
 print(f"Already in DB: {len(existing)} tracks\n")
 
-# Filter out tracks we already have before hitting the API
 new_tracks = [
     (artist, title) for artist, title in TRACKS
     if (title.lower(), artist.lower()) not in existing

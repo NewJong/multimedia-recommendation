@@ -11,21 +11,11 @@ try:
 except Exception:
     _llm = None
 
-# One-time Neon SQL to enable AI-explanation caching for the graph view:
-#   CREATE TABLE IF NOT EXISTS cross_explanations (
-#     anchor_type TEXT NOT NULL,
-#     anchor_id   INTEGER NOT NULL,
-#     rec_type    TEXT NOT NULL,
-#     rec_id      INTEGER NOT NULL,
-#     explanation TEXT NOT NULL,
-#     created_at  TIMESTAMP DEFAULT NOW(),
-#     PRIMARY KEY (anchor_type, anchor_id, rec_type, rec_id)
-#   );
 
 router = APIRouter(prefix="/cross", tags=["cross"])
 
 _LLM_MODEL = "claude-haiku-4-5-20251001"
-_EXPLAIN_BATCH = 12   # pairs per LLM call — keeps prompt sharp, output quality high
+_EXPLAIN_BATCH = 12  
 
 TABLE = {"track": "tracks", "movie": "movies", "game": "games"}
 TAG_FIELDS = {
@@ -34,25 +24,9 @@ TAG_FIELDS = {
     "game":  ("genres", "tags"),
 }
 
-# Hybrid scoring: semantic embedding similarity + structural tag-overlap bonus.
-# Pure semantic on a general-purpose 22M-param model (all-MiniLM-L6-v2) tends to
-# cap cross-domain pairs in 0.5–0.7 because movies vs games use different vocab
-# (plot vs gameplay). Adding a small bonus per shared tag rewards franchise/
-# theme overlap that the embedding doesn't fully capture on its own.
-SHARED_TAG_BONUS = 0.07   # per shared tag (lowercased)
-MAX_TAG_BONUS    = 0.35   # cap so semantic still dominates
-POOL_MULT        = 4      # over-fetch from pgvector, then re-rank by hybrid
-
-# Display calibration: LLM-augmented vibe-space embeddings cluster all items in
-# a narrow band (~55–95% raw cosine) because every vibe_text uses the same
-# experiential vocabulary by design. Random pairs land at ~58–62%, so displaying
-# raw 60% as "60% match" feels misleading. We linearly remap [50, 100] → [0, 100]
-# so that the displayed score reflects perceived match strength:
-#   raw  0.50 →  0%   (noise floor)
-#   raw  0.75 → 50%
-#   raw  0.90 → 80%
-#   raw  1.00 → 100%
-# The raw semantic value is still exposed as _semantic_score for transparency.
+SHARED_TAG_BONUS = 0.07   
+MAX_TAG_BONUS    = 0.35   
+POOL_MULT        = 4      
 DISPLAY_BASELINE = 0.50
 DISPLAY_SCALE    = 2.0
 
@@ -61,8 +35,6 @@ def _calibrate(raw: float) -> int:
     """Map raw cosine-like score [0, 1] to displayed percentage [0, 100]."""
     return round(max(0.0, min(1.0, (raw - DISPLAY_BASELINE) * DISPLAY_SCALE)) * 100)
 
-# Title tokens help catch franchise matches across domains
-# (e.g. "Spider-Man" movie ↔ "Marvel's Spider-Man" game).
 TITLE_STOPWORDS = {
     "the", "and", "for", "with", "from", "into", "your", "this", "that",
     "edition", "remaster", "remastered", "definitive", "ultimate", "complete",
@@ -197,7 +169,6 @@ def discover_graph(uid: str, k: int = Query(1, ge=1, le=3)):
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            # Pull liked items joined with the catalog so we get embeddings + vibe_text in one shot.
             cur.execute("""
                 SELECT t.*, 'track' AS _item_type FROM tracks t
                 JOIN likes l ON l.item_id = t.id AND l.item_type = 'track'
@@ -245,7 +216,6 @@ def discover_graph(uid: str, k: int = Query(1, ge=1, le=3)):
                     """, (a_vec, a_vec, k * POOL_MULT))
                     pool = [dict(r) for r in cur.fetchall()]
 
-                    # Hybrid re-rank (same logic as cross_recommendations).
                     scored: list[tuple[float, dict, list[str]]] = []
                     for r in pool:
                         r_tags = _collect_tags(r, other_type)
@@ -265,12 +235,10 @@ def discover_graph(uid: str, k: int = Query(1, ge=1, le=3)):
                             "target":      node_id,
                             "score":       _calibrate(hybrid),
                             "shared_tags": shared_tags,
-                            "explanation": None,   # filled from cache below, generated only on click
+                            "explanation": None,   
                         })
                         edge_keys.append((a_type, a_id, other_type, r_id))
 
-            # Cheap pass: attach any cached explanations. Misses stay null and are
-            # generated lazily by POST /cross/explain when the user clicks a node.
             cached = _fetch_cached_explanations(cur, edge_keys)
             for i, key in enumerate(edge_keys):
                 edges[i]["explanation"] = cached.get(key)
@@ -313,7 +281,6 @@ def explain_pairs(body: _ExplainRequest):
 
             new: dict[tuple, str] = {}
             if missing:
-                # Fetch vibe_text for both sides in bulk — one query per domain.
                 by_domain: dict[str, set[int]] = {"track": set(), "movie": set(), "game": set()}
                 for a_t, a_id, r_t, r_id in missing:
                     by_domain[a_t].add(a_id)
@@ -367,13 +334,10 @@ def cross_recommendations(anchor_type: str, anchor_id: int, k: int = Query(5, ge
 
             anchor_tags = _collect_tags(anchor, anchor_type)
             result: dict = {"anchor": serialize_rows([anchor])[0]}
-            # anchor's own embedding is a string like "[0.1,0.2,...]" via pgvector;
-            # casting it back to ::vector in the query is clean and avoids parsing here.
             anchor_vec = anchor["embedding"]
 
             for other in other_types:
                 other_table = TABLE[other]
-                # Over-fetch by semantic distance, then re-rank in Python by hybrid score.
                 cur.execute(f"""
                     SELECT *, 1 - (embedding <=> %s::vector) AS _semantic
                     FROM {other_table}
@@ -395,10 +359,8 @@ def cross_recommendations(anchor_type: str, anchor_id: int, k: int = Query(5, ge
                     r.pop("embedding", None)
                     r.pop("_semantic", None)
 
-                # Sort by raw hybrid (more granular than the rounded display score).
                 pool.sort(key=lambda r: -r["_raw_score"])
                 result[other_table] = serialize_rows(pool[:k])
-            # also strip the anchor embedding from the response
             result["anchor"].pop("embedding", None)
     finally:
         conn.close()

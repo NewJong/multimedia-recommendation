@@ -23,13 +23,12 @@ import numpy as np
 THIS_DIR = Path(__file__).parent
 data = json.load(open(THIS_DIR / "results.json", encoding="utf-8"))
 
-# ── Chart 1: per-domain breakdown ────────────────────────────────────────────
 metrics      = [("p@10", "Precision@10"), ("r@10", "Recall@10"), ("mrr@10", "MRR@10")]
 domains      = ["game", "movie", "track"]
 domain_labels = ["Games", "Movies", "Tracks"]
 algos        = ["tfidf", "pop", "rand"]
 algo_labels  = ["TF-IDF (наш)", "Popularity", "Random"]
-colors       = ["#2563eb", "#fb923c", "#94a3b8"]   # blue, orange, gray
+colors       = ["#2563eb", "#fb923c", "#94a3b8"]  
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 5.5))
 x = np.arange(len(domains))
@@ -45,7 +44,6 @@ for ax_idx, (key, label) in enumerate(metrics):
             yerr=stds, label=algo_labels[i],
             color=colors[i], capsize=5, edgecolor="black", linewidth=0.5,
         )
-        # value labels on top
         for j, b in enumerate(bars):
             h = b.get_height()
             ax.text(b.get_x() + b.get_width() / 2, h + stds[j] + 0.02,
@@ -71,7 +69,6 @@ plt.savefig(out1, dpi=150, bbox_inches="tight")
 plt.close()
 print(f"✓ {out1.name}")
 
-# ── Chart 2: lift over baselines (overall) ───────────────────────────────────
 fig, ax = plt.subplots(figsize=(8.5, 5))
 metric_keys = ["p@10", "r@10", "mrr@10"]
 metric_labels_lift = ["Precision@10", "Recall@10", "MRR@10"]
@@ -95,7 +92,6 @@ b2 = ax.bar(x2,          m_pop,   width2, yerr=s_pop,   label="Popularity",
 b3 = ax.bar(x2 + width2, m_rand,  width2, yerr=s_rand,  label="Random",
             color="#94a3b8", capsize=5, edgecolor="black", linewidth=0.5)
 
-# Labels on bars
 for bars, means in [(b1, m_tfidf), (b2, m_pop), (b3, m_rand)]:
     for b, m in zip(bars, means):
         ax.text(b.get_x() + b.get_width() / 2, b.get_height() + 0.03,
@@ -113,7 +109,6 @@ ax.grid(axis="y", alpha=0.3, linestyle="--")
 ax.set_axisbelow(True)
 ax.legend(loc="upper right", fontsize=11, framealpha=0.95)
 
-# Lift annotations
 for i, k in enumerate(metric_keys):
     tf_v = tfidf[k]["mean"]
     pop_v = pop[k]["mean"]

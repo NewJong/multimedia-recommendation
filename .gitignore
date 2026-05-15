@@ -1,9 +1,7 @@
-# ── Environment & secrets ──────────────────────────────
 .env
 .env.*
 !.env.example
 
-# ── Python ─────────────────────────────────────────────
 __pycache__/
 *.py[cod]
 *.pyo
@@ -18,21 +16,17 @@ env/
 .Python
 pip-log.txt
 
-# ── Node / Frontend ────────────────────────────────────
 node_modules/
 .pnp
 .pnp.js
 
-# Astro build output
 dist/
 .astro/
 frontend/.astro/
 
-# Package manager locks (keep package-lock.json, ignore yarn/pnpm)
 yarn.lock
 pnpm-lock.yaml
 
-# ── IDE & OS ───────────────────────────────────────────
 .vscode/
 .idea/
 *.swp
@@ -41,13 +35,11 @@ pnpm-lock.yaml
 Thumbs.db
 desktop.ini
 
-# ── Logs ───────────────────────────────────────────────
 *.log
 logs/
 npm-debug.log*
 yarn-debug.log*
 
-# ── Misc ───────────────────────────────────────────────
 *.sqlite
 *.db
 backend/create_likes.py

@@ -15,15 +15,11 @@ NOISE = {
     "lush", "dreamy", "chillout", "mellow", "catchy", "epic", "legendary",
     "timeless", "masterpiece", "brilliant", "chill", "relax", "relaxing",
     "party", "workout", "running", "study", "sleep",
-    # too generic — 45% of tracks have it; sub-genres below are already more specific
     "rock",
-    # decade tags — no taste signal
     "80s", "70s", "90s", "60s", "50s",
 }
 
-# lowercase key → canonical tag
 MERGE = {
-    # lowercase duplicates of already-canonical tags (case normalization)
     "alternative":         "Alternative Rock",
     "pop":                 "Pop",
     "electronic":          "Electronic",
@@ -36,23 +32,19 @@ MERGE = {
     "metal":               "Metal",
     "progressive rock":    "Progressive Rock",
     "fusion":              "Jazz",
-    # hip-hop variants
     "hip hop":             "Hip-Hop",
     "hip-hop":             "Hip-Hop",
     "hiphop":              "Hip-Hop",
     "rap":                 "Hip-Hop",
     "trap":                "Hip-Hop",
-    # electronic
     "electronic music":    "Electronic",
     "electronica":         "Electronic",
     "electro":             "Electronic",
     "edm":                 "Electronic",
     "dance":               "Electronic",
     "dance music":         "Electronic",
-    # trip-hop
     "trip hop":            "Trip-Hop",
     "trip-hop":            "Trip-Hop",
-    # rock variants
     "rock music":          "Rock",
     "alternative rock":    "Alternative Rock",
     "indie rock":          "Indie Rock",
@@ -60,40 +52,33 @@ MERGE = {
     "classic rock":        "Classic Rock",
     "post-grunge":         "Grunge",
     "grunge":              "Grunge",
-    # metal
     "heavy metal":         "Metal",
     "alternative metal":   "Metal",
     "thrash metal":        "Metal",
     "nu metal":            "Metal",
     "death metal":         "Metal",
     "black metal":         "Metal",
-    # pop
     "pop music":           "Pop",
     "electropop":          "Pop",
     "dance-pop":           "Pop",
     "alt-pop":             "Pop",
-    # jazz
     "jazz music":          "Jazz",
     "vocal jazz":          "Jazz",
     "jazz piano":          "Jazz",
     "bebop":               "Jazz",
-    # folk
     "folk music":          "Folk",
     "indie folk":          "Folk",
     "singer-songwriter":   "Folk",
     "acoustic":            "Folk",
-    # soul / r&b
     "rhythm and blues":    "Soul/Blues",
     "r&b":                 "Soul/Blues",
     "rnb":                 "Soul/Blues",
     "soul music":          "Soul/Blues",
     "blues music":         "Soul/Blues",
     "funk":                "Soul/Blues",
-    # punk
     "punk rock":           "Punk/Emo",
     "punk music":          "Punk/Emo",
     "emo":                 "Punk/Emo",
-    # classical
     "contemporary classical": "Classical",
     "modern classical":    "Classical",
     "neoclassical":        "Classical",
@@ -101,14 +86,11 @@ MERGE = {
     "orchestral":          "Classical",
     "symphonic":           "Classical",
     "minimalism":          "Classical",
-    # reggae
     "reggae music":        "Reggae",
     "ska":                 "Reggae",
-    # post-rock
     "post rock":           "Post-Rock",
     "post-rock":           "Post-Rock",
     "math rock":           "Post-Rock",
-    # ambient / instrumental
     "ambient music":       "Ambient",
     "lo-fi":               "Lo-Fi",
     "lo fi":               "Lo-Fi",
@@ -131,10 +113,8 @@ def normalise_tag(tag: str) -> str | None:
     low = tag.lower().strip()
     if low in NOISE:
         return None
-    # year tags
     if re.fullmatch(r"\d{4}s?", low):
         return None
-    # lastfm artefacts: "x.y", "fm", number ratios
     if re.search(r"fm\b|\d+\.\d+", tag, re.I):
         return None
     canonical = MERGE.get(low)

@@ -15,22 +15,17 @@ load_dotenv(Path(__file__).parents[1] / ".env")
 
 DB_URL = os.getenv("DATABASE_URL")
 
-# Keywords that carry no taste signal — too generic or structural
 REMOVE = {
-    # narrative devices (present in almost every film)
     "flashback", "voice over", "narration", "nonlinear timeline",
     "twist ending", "twist in the end", "surprise ending",
     "based on novel", "based on true story", "based on true events",
     "based on a true story", "based on real events",
     "based on book", "based on short story",
-    # production descriptors
     "independent film", "cult film", "cult classic",
     "female protagonist", "male protagonist",
     "ensemble cast", "cameo",
-    # time descriptors (too broad)
     "1980s", "1990s", "2000s", "1970s", "1960s", "1950s", "1940s", "1930s",
     "19th century", "20th century", "21st century",
-    # location noise (cities, states, countries — not taste signals)
     "new york", "los angeles", "london", "paris", "america", "england", "france",
     "washington dc, usa", "los angeles, california", "san francisco, california",
     "malibu", "brooklyn, new york city", "new mexico", "texas", "virginia",
@@ -38,12 +33,10 @@ REMOVE = {
     "rome, italy", "paris, france", "london, england", "tokyo, japan",
     "south korea", "seoul, south korea", "italy", "australia", "africa",
     "europe", "middle east", "jamaica", "caribbean sea",
-    # structural / meta — not about taste
     "based on comic", "based on novel or book", "based on young adult novel",
     "sequel", "remake", "prequel", "reboot",
 }
 
-# Synonym merges: lowercase key → canonical value
 MERGE = {
     "sci fi":              "sci-fi",
     "science fiction":     "sci-fi",

@@ -161,7 +161,6 @@ def get_insight(uid1: str, uid2: str):
     if uid1 == uid2:
         raise HTTPException(status_code=400, detail="Same user")
 
-    # Use the same SELECT * as content.py so cache stays consistent regardless of call order.
     games  = cached_query("games",  "SELECT * FROM games  ORDER BY rating DESC")
     movies = cached_query("movies", "SELECT * FROM movies ORDER BY rating DESC, vote_count DESC")
     tracks = cached_query("tracks", "SELECT * FROM tracks ORDER BY listeners DESC")
@@ -171,15 +170,10 @@ def get_insight(uid1: str, uid2: str):
     name1  = _get_name(uid1)
     name2  = _get_name(uid2)
 
-    # Common liked items with IDs for frontend links
     common_games  = [{"id": g["id"], "title": g["title"]} for g in games  if g["id"] in likes1["game"]  & likes2["game"]][:6]
     common_movies = [{"id": m["id"], "title": m["title"]} for m in movies if m["id"] in likes1["movie"] & likes2["movie"]][:6]
     common_tracks = [{"id": t["id"], "title": t["name"]}  for t in tracks if t["id"] in likes1["track"] & likes2["track"]][:6]
 
-    # Distinctive picks: items uid2 likes that capture what's UNIQUE about their
-    # taste vs uid1's. Ranked by (their_vec − my_vec), not by similarity to my
-    # own profile. This is the opposite of For You — it surfaces what they bring
-    # to the table (e.g., jazz tracks for a rock fan), not what I'd already find.
     games_picks  = _distinctive_picks(likes1["game"],  likes2["game"],  games,  ["genres", "tags"])
     movies_picks = _distinctive_picks(likes1["movie"], likes2["movie"], movies, ["genres", "keywords"], min_df=2)
     tracks_picks = _distinctive_picks(likes1["track"], likes2["track"], tracks, ["genres", "tags"])
@@ -210,8 +204,6 @@ def get_insight(uid1: str, uid2: str):
     )
     shared_line = ", ".join(all_common_titles) if all_common_titles else "nothing in common yet"
 
-    # Pick titles for the LLM — these are items DISTINCTIVE to name2's taste
-    # (things name1 likely wouldn't discover on their own).
     pick_titles = (
         [f'"{p["title"]}" (music)' for p in picks["tracks"]] +
         [f'"{p["title"]}" (movie)' for p in picks["movies"]] +
@@ -219,8 +211,6 @@ def get_insight(uid1: str, uid2: str):
     )
     picks_line = ", ".join(pick_titles) if pick_titles else "no distinctive picks"
 
-    # Count how many domains actually have distinctive picks — we'll require the
-    # LLM to span as many as available, not pile up suggestions in one domain.
     domains_with_picks = sum(1 for k in ("tracks", "movies", "games") if picks[k])
     if domains_with_picks >= 3:
         diversity_rule = "Pick exactly THREE items — ONE from music, ONE from a movie, ONE from a game. Never pick two from the same domain."

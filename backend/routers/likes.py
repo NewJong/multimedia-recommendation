@@ -42,8 +42,6 @@ def toggle_like(uid: str, item_type: str, item_id: int):
     conn = get_conn()
     try:
         with conn, conn.cursor() as cur:
-            # Atomic toggle: try to insert; if row already exists (UNIQUE constraint
-            # on (user_uid, item_type, item_id) must be present), delete instead.
             cur.execute("""
                 INSERT INTO likes (user_uid, item_type, item_id)
                 VALUES (%s, %s, %s)
@@ -61,7 +59,6 @@ def toggle_like(uid: str, item_type: str, item_id: int):
     finally:
         conn.close()
 
-    # Invalidate cached recommendations so next For You load is fresh
     _cache.pop(f"recs_{item_type}_{uid}", None)
 
     return {"liked": liked}

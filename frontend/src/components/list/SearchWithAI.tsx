@@ -3,19 +3,12 @@ import { useState } from 'react';
 interface Props {
   value: string;
   onChange: (v: string) => void;
-  /** Tailwind class for the focus border (e.g. `focus-within:border-emerald-500`). */
   focusBorder: string;
-  /** CSS box-shadow for the focus ring (e.g. `0 0 0 3px rgba(16,185,129,0.15)`). */
   focusRing: string;
-  /** Tailwind classes for the AI pill when enabled (e.g. `bg-emerald-500/20 text-emerald-300`). */
   aiActiveCls: string;
   placeholder?: string;
 }
 
-/**
- * Compact search input with an inline "✦ AI" button that hands off the query
- * to /search?q=...&ai=1 — the existing AI-search page handles everything else.
- */
 export default function SearchWithAI({ value, onChange, focusBorder, focusRing, aiActiveCls, placeholder = 'Search…' }: Props) {
   const [focused, setFocused] = useState(false);
   const canSubmit = value.trim().length > 0;

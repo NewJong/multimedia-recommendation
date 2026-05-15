@@ -15,73 +15,49 @@ load_dotenv(Path(__file__).parents[1] / ".env")
 
 DB_URL = os.getenv("DATABASE_URL")
 
-# Tags that carry no taste signal — remove them
 REMOVE = {
-    # platform / store status
     "early access", "steam achievements", "steam cloud", "steam trading cards",
     "steam-trading-cards", "steam leaderboards", "steam workshop",
     "full controller support", "partial controller support", "controller support",
     "includes level editor", "commentary available",
     "valve anti-cheat enabled", "in-app purchases", "free to play",
-    # platform exclusivity (not a taste signal)
     "exclusive", "true exclusive", "w10 exclusive", "xbox exclusive",
     "pc exclusive", "console exclusive",
-    # remote play / streaming features
     "remote play on tablet", "remote play on phone", "remote play on tv",
     "remote play together",
-    # multiplayer mode tags — features, not taste
     "pvp", "pve", "online pvp", "online multiplayer", "local multiplayer",
     "cross-platform multiplayer", "split screen", "multiplayer",
     "shared/split screen co-op", "shared/split screen pvp",
     "4 player local", "lan co-op", "co-op campaign", "co-op multiplayer",
     "co op multiplayer", "family sharing",
-    # platform utilities (not taste)
     "overlay", "cloud saves", "achievements", "captions available",
     "vr supported", "trackir", "3d vision",
     "online", "offline", "console",
-    # ESRB ratings that leak into tags
     "mature", "teen", "everyone", "everyone 10+", "adults only", "rating pending",
-    # hardware / platform features
     "controller", "vr", "mouse only",
-    # content descriptors (ESRB-adjacent — not about taste)
     "gore", "violent", "violence", "blood", "nudity", "sexual content",
-    # business model noise
     "lootboxes", "microtransactions", "ea play", "in development",
     "skins", "loot",
-    # meme/internet culture tags
     "memes", "illuminati",
-    # subjective / review metrics
     "masterpiece", "emotional", "relaxing", "replay value",
     "experience", "atmosphere", "immersive",
-    # structural / duration descriptors
     "short", "remake", "story",
-    # pure sentiment / noise
     "classic", "great soundtrack", "stats", "beautiful",
-    # too generic — appears in 60%+ of games, kills signal
     "atmospheric",
-    # single-word garbage (mostly 1–2 occurrences, no taste signal)
     "battle", "friends", "night", "ship", "cats", "hero", "island",
     "city", "prison", "1-bit", "japanese", "combat",
-    # character / franchise names (not cross-game taste signals)
     "batman", "lara croft", "assassin",
-    # social / identity tags
     "lgbtq+",
-    # location noise (games)
     "new york", "russia", "mexico", "forest",
-    # technical rendering terms
     "voxel", "photorealistic", "photorealism", "3d vision",
-    # too-generic single words
     "science", "mod", "politics", "conversation", "destruction",
     "kickstarter",
-    # duplicate / malformed
-    "coop",           # duplicate of Co-op
-    "cartoon",        # duplicate of Cartoony
-    "tank",           # duplicate of Tanks
-    "paranormal",     # duplicate of Supernatural — deduped via MERGE below
-    # racing lowercase noise
+    "coop",           
+    "cartoon",        
+    "tank",           
+    "paranormal",     
     "street racing", "cars", "drift", "racing-game",
     "festival", "sprint", "winter", "autumn", "extreme", "photorealism",
-    # RAWG junk tags (game-specific nonsense, foreign)
     "karaihb", "controversial", "first person mod",
     "tir", "mac-plus", "dinn", "obra",
     "celeste", "xna", "fna", "miniboss", "towerfall", "matt-makes-games",
@@ -100,43 +76,32 @@ REMOVE = {
     "overlay", "achievements",
     "1980s",
     "ww2", "history",
-    "mmo",  # lowercase — handled in MERGE below
+    "mmo",  
     "dungeons", "epic",
     "arena", "tv", "map", "hd", "gaming", "balance", "endless",
     "skill", "online", "offline", "evil",
     "grappling-hook", "collectathon",
 }
 
-# Synonyms: any key → canonical value (title-cased)
-# Keys must be lowercase
 MERGE = {
-    # co-op variants
     "cooperative":        "Co-op",
     "multiplayer co-op":  "Co-op",
     "co op":              "Co-op",
     "online co-op":       "Co-op",
     "local co-op":        "Co-op",
-    # esports
     "e-sports":           "Esports",
     "esports":            "Esports",
-    # perspective — standardise spelling
     "first person":       "First-Person",
     "third person":       "Third-Person",
     "third-person":       "Third-Person",
-    # open world
     "open-world":         "Open World",
-    # shooter sub-genres
     "third person shooter": "Third-Person Shooter",
-    # fps — merge into First-Person (RDR2 has both FPS and First-Person as duplicates)
     "fps":                "First-Person",
     "first-person shooter": "First-Person",
-    # perspective duplicates
     "3rd-person perspective": "Third-Person",
     "3rd-person":            "Third-Person",
-    # weak variants → stronger canonical
     "puzzles":               "Puzzle",
     "story":                 "Story Rich",
-    # lowercase / variant → canonical
     "mmo":                   "MMO",
     "realism":               "Realistic",
     "paranormal":            "Supernatural",
@@ -149,10 +114,8 @@ MERGE = {
     "2d fighter":            "Fighting",
     "immersive sim":         "Simulation",
 
-    # rpg
     "role-playing":       "RPG",
     "role playing":       "RPG",
-    # misc
     "hack and slash":     "Hack & Slash",
     "hack-and-slash":     "Hack & Slash",
     "real-time strategy": "RTS",
@@ -169,7 +132,6 @@ def normalise_tag(tag: str) -> str | None:
     low = tag.lower().strip()
     if low in REMOVE:
         return None
-    # drop tags that contain non-ASCII letters (foreign language tags)
     if _re.search(r'[^\x00-\x7F]', tag):
         return None
     canonical = MERGE.get(low)

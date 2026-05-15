@@ -27,22 +27,21 @@ GENRE_MAP = {
     53: "Thriller", 10752: "War", 37: "Western",
 }
 
-# Fetch across genres — discovers more unique IDs than we need, stops at 100 inserts
 GENRE_PAGES = [
-    (28,    2),  # Action
-    (35,    2),  # Comedy
-    (18,    2),  # Drama
-    (27,    2),  # Horror
-    (878,   2),  # Sci-Fi
-    (53,    1),  # Thriller
-    (10749, 1),  # Romance
-    (16,    1),  # Animation
-    (80,    1),  # Crime
-    (14,    1),  # Fantasy
-    (12,    1),  # Adventure
-    (10752, 1),  # War
-    (37,    1),  # Western
-    (99,    1),  # Documentary
+    (28,    2),  
+    (35,    2),  
+    (18,    2),  
+    (27,    2),  
+    (878,   2),  
+    (53,    1),  
+    (10749, 1),  
+    (16,    1),  
+    (80,    1),  
+    (14,    1),  
+    (12,    1),  
+    (10752, 1),  
+    (37,    1),  
+    (99,    1),  
 ]
 
 
@@ -95,16 +94,13 @@ def fetch_movie(tmdb_id):
     }
 
 
-# ── DB ────────────────────────────────────────────────────────────────────────
 conn = psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 cur  = conn.cursor()
 
-# Load existing tmdb_ids so we skip them
 cur.execute("SELECT tmdb_id FROM movies")
 existing_tmdb_ids = {r["tmdb_id"] for r in cur.fetchall()}
 print(f"Already in DB: {len(existing_tmdb_ids)} movies\n")
 
-# ── Collect candidate IDs from TMDB discover ──────────────────────────────────
 seen_ids  = set()
 movie_ids = []
 
@@ -123,7 +119,6 @@ for genre_id, pages in GENRE_PAGES:
 
 print(f"Collected {len(movie_ids)} new candidate IDs — fetching details...\n")
 
-# ── Fetch & insert ────────────────────────────────────────────────────────────
 inserted = 0
 skipped  = 0
 failed   = 0

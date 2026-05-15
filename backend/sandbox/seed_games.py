@@ -150,7 +150,6 @@ NOISE_TAGS = {
     "singleplayer", "multiplayer", "steam achievements", "full controller support",
     "steam cloud", "great soundtrack", "stats", "steam trading cards",
     "steam leaderboards", "includes level editor", "commentary available",
-    # will also be cleaned by normalize_games.py — listed here to avoid seeding noise
     "early access", "mature", "teen", "everyone", "everyone 10+", "adults only",
     "moddable",
 }
@@ -158,13 +157,12 @@ NOISE_TAGS = {
 
 def strip_html(text: str, max_len: int = 1500) -> str:
     import html as _html
-    text = _html.unescape(text or "")       # &#39; → '  &amp; → &
-    text = re.sub(r"<[^>]+>", "", text)     # strip HTML tags
-    text = re.sub(r"\n{3,}", "\n\n", text)  # collapse blank lines
+    text = _html.unescape(text or "")       
+    text = re.sub(r"<[^>]+>", "", text)     
+    text = re.sub(r"\n{3,}", "\n\n", text)  
     text = text.strip()
     if len(text) <= max_len:
         return text
-    # truncate at last sentence boundary within max_len
     cut = text.rfind(". ", 0, max_len)
     return text[:cut + 1] if cut != -1 else text[:max_len]
 
@@ -190,7 +188,7 @@ def fetch_game(rawg_id):
     genres = [GENRE_MAP.get(g["slug"], g["name"]) for g in d.get("genres", [])]
 
     raw_tags = [t["name"] for t in d.get("tags", []) if t.get("language") == "eng"]
-    tags = [t for t in raw_tags if t.lower() not in NOISE_TAGS]  # no hard cap — normalize_games handles noise
+    tags = [t for t in raw_tags if t.lower() not in NOISE_TAGS]  
 
     platforms = list({p["platform"]["name"] for p in d.get("platforms") or []})
     devs = [x["name"] for x in d.get("developers") or []]
@@ -221,16 +219,13 @@ def fetch_game(rawg_id):
     }
 
 
-# ── DB ────────────────────────────────────────────────────────────────────────
 conn = psycopg2.connect(DB_URL, cursor_factory=psycopg2.extras.RealDictCursor)
 cur  = conn.cursor()
 
-# Load existing rawg_ids so we skip them
 cur.execute("SELECT rawg_id FROM games")
 existing_rawg_ids = {r["rawg_id"] for r in cur.fetchall()}
 print(f"Already in DB: {len(existing_rawg_ids)} games\n")
 
-# ── Search phase ──────────────────────────────────────────────────────────────
 all_names   = PRIORITY + EXTRA
 seen_ids    = set()
 ordered_ids = []
@@ -255,7 +250,6 @@ for name in all_names:
 
 print(f"\n{len(ordered_ids)} new games to fetch — inserting...\n")
 
-# ── Insert phase ──────────────────────────────────────────────────────────────
 inserted = 0
 skipped  = 0
 failed   = 0

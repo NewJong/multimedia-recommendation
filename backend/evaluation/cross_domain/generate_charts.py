@@ -24,10 +24,9 @@ data = json.load(open(THIS_DIR / "results.json", encoding="utf-8"))
 
 ALGOS  = ["hybrid", "semantic", "random"]
 LABELS = ["Hybrid (наш)", "Semantic only", "Random"]
-COLORS = ["#06b6d4", "#a78bfa", "#94a3b8"]   # cyan, violet, gray
+COLORS = ["#06b6d4", "#a78bfa", "#94a3b8"]   
 
 
-# ── Chart 1: headline lift — 3 metrics × 3 algos @ K=5 ───────────────────────
 def chart_lift():
     metrics  = [("score", "Semantic score"),
                 ("shared_tags", "Shared tags"),
@@ -60,7 +59,6 @@ def chart_lift():
             ax.set_ylim(0, 1.0)
         elif key == "overlap_rate":
             ax.set_ylim(0, 1.0)
-            # format as percent
             ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
         else:
             ax.set_ylim(0, max(means) * 1.4 + max(stds) * 2)
@@ -77,7 +75,6 @@ def chart_lift():
     print(f"✓ {out.name}")
 
 
-# ── Chart 2: per-pair breakdown (sem_score @ K=5) ────────────────────────────
 def chart_per_pair():
     pair_keys = list(data["per_pair"].keys())
     pair_labels = [p.replace("->", "→") for p in pair_keys]
@@ -115,7 +112,6 @@ def chart_per_pair():
     print(f"✓ {out.name}")
 
 
-# ── Chart 3: ranking discrimination — score gradient by K ────────────────────
 def chart_ranking():
     ks = data["metadata"]["k_values"]
 

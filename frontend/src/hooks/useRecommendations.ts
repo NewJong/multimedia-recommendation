@@ -15,8 +15,6 @@ export interface RecItem {
 }
 
 export function useRecommendations<T extends RecItem = RecItem>(itemType: ItemType, uid: string | null) {
-  // Seed from sessionStorage if we have a fresh cached copy — avoids the loading flicker
-  // when navigating back to a list page.
   const initial = uid ? cacheGet<T[]>(recsKey(itemType, uid)) : null;
   const [recs, setRecs] = useState<T[]>(initial ?? []);
   const [loading, setLoading] = useState(false);
@@ -44,7 +42,6 @@ export function useRecommendations<T extends RecItem = RecItem>(itemType: ItemTy
     const onChange = (e: Event) => {
       const detail = (e as CustomEvent).detail;
       if (!detail || detail.itemType === itemType) {
-        // Invalidate stale recs cache for this domain (any uid) when likes change.
         cacheClear(`recs:${itemType}:`);
         setLoaded(false);
       }
