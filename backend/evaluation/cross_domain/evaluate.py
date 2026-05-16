@@ -48,10 +48,10 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
-sys.path.insert(0, str(Path(__file__).parents[1]))
+sys.path.insert(0, str(Path(__file__).parents[2]))   # backend/ → finds routers, database
 
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parents[1] / ".env")
+load_dotenv(Path(__file__).parents[2] / ".env")
 
 import psycopg2
 import psycopg2.extras
@@ -132,14 +132,28 @@ def cross_rec_semantic_only(cur, anchor: dict, anchor_type: str, other_type: str
     return out
 
 
-def cross_rec_random(anchor: dict, anchor_type: str, other_pool: list[dict], k: int, rng: random.Random):
-    """Random K items from the other-domain pool. Scores computed for fair comparison."""
+def cross_rec_random(cur, anchor: dict, anchor_type: str, other_type: str,
+                     other_pool: list[dict], k: int, rng: random.Random):
+    """Random K items from the other-domain pool. Semantic score IS computed via
+    pgvector for fair comparison against hybrid/semantic — otherwise the random
+    baseline would be zero and the lift metric meaningless."""
     sampled = rng.sample(other_pool, min(k, len(other_pool)))
+    sampled_ids = [r["id"] for r in sampled]
+
+    cur.execute(f"""
+        SELECT id, 1 - (embedding <=> %s::vector) AS _sem
+        FROM {TABLE[other_type]}
+        WHERE id = ANY(%s)
+    """, (anchor["embedding"], sampled_ids))
+    sem_by_id = {r["id"]: float(r["_sem"]) for r in cur.fetchall()}
+
     anchor_tags = _collect_tags(anchor, anchor_type)
     out = []
     for r in sampled:
-        shared = anchor_tags & _collect_tags(r, "track" if r in other_pool else anchor_type)
-        out.append((r, 0.0, 0.0, shared))
+        sem = sem_by_id.get(r["id"], 0.0)
+        shared = anchor_tags & _collect_tags(r, other_type)
+        # Random has no tag-bonus re-ranker, so hybrid == semantic here.
+        out.append((r, sem, sem, shared))
     return out
 
 
@@ -178,9 +192,9 @@ def evaluate_once(seed: int, items_by_type: dict[str, list[dict]]) -> dict:
                 result[pair_key] = {algo: {k: defaultdict(list) for k in K_VALUES} for algo in ("hybrid", "semantic", "random")}
 
                 for anchor in anchors:
-                    hybrid_top  = cross_rec_hybrid(cur, anchor, anchor_type, other_type, max(K_VALUES))
+                    hybrid_top   = cross_rec_hybrid(cur, anchor, anchor_type, other_type, max(K_VALUES))
                     semantic_top = cross_rec_semantic_only(cur, anchor, anchor_type, other_type, max(K_VALUES))
-                    random_top  = cross_rec_random(anchor, anchor_type, other_pool, max(K_VALUES), rng)
+                    random_top   = cross_rec_random(cur, anchor, anchor_type, other_type, other_pool, max(K_VALUES), rng)
 
                     for k in K_VALUES:
                         for algo_name, top in (("hybrid", hybrid_top), ("semantic", semantic_top), ("random", random_top)):

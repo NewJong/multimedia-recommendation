@@ -38,9 +38,8 @@ def chart_lift():
 
     for idx, (key, label) in enumerate(metrics):
         ax = axes[idx]
-        means = [data["overall"][a][str(5)] [key]["mean"] if isinstance(data["overall"][a].get(5, None), dict) is False
-                 else data["overall"][a][5][key]["mean"] for a in ALGOS]
-        stds  = [data["overall"][a][5][key]["std"]  for a in ALGOS]
+        means = [data["overall"][a]["5"][key]["mean"] for a in ALGOS]
+        stds  = [data["overall"][a]["5"][key]["std"]  for a in ALGOS]
         bars = ax.bar(x, means, width, yerr=stds, color=COLORS,
                       edgecolor="black", linewidth=0.5, capsize=6)
 
@@ -84,8 +83,8 @@ def chart_per_pair():
     width = 0.27
 
     for i, algo in enumerate(ALGOS):
-        means = [data["per_pair"][p][algo][5]["score"]["mean"] for p in pair_keys]
-        stds  = [data["per_pair"][p][algo][5]["score"]["std"]  for p in pair_keys]
+        means = [data["per_pair"][p][algo]["5"]["score"]["mean"] for p in pair_keys]
+        stds  = [data["per_pair"][p][algo]["5"]["score"]["std"]  for p in pair_keys]
         bars = ax.bar(x + (i - 1) * width, means, width, yerr=stds,
                       label=LABELS[i], color=COLORS[i],
                       edgecolor="black", linewidth=0.5, capsize=4)
@@ -116,12 +115,12 @@ def chart_ranking():
     ks = data["metadata"]["k_values"]
 
     fig, ax = plt.subplots(figsize=(9, 5.5))
-    hyb_means = [data["overall"]["hybrid"][k]["score"]["mean"] for k in ks]
-    hyb_stds  = [data["overall"]["hybrid"][k]["score"]["std"]  for k in ks]
-    sem_means = [data["overall"]["semantic"][k]["score"]["mean"] for k in ks]
-    sem_stds  = [data["overall"]["semantic"][k]["score"]["std"]  for k in ks]
-    rnd_means = [data["overall"]["random"][k]["score"]["mean"] for k in ks]
-    rnd_stds  = [data["overall"]["random"][k]["score"]["std"]  for k in ks]
+    hyb_means = [data["overall"]["hybrid"][str(k)]["score"]["mean"] for k in ks]
+    hyb_stds  = [data["overall"]["hybrid"][str(k)]["score"]["std"]  for k in ks]
+    sem_means = [data["overall"]["semantic"][str(k)]["score"]["mean"] for k in ks]
+    sem_stds  = [data["overall"]["semantic"][str(k)]["score"]["std"]  for k in ks]
+    rnd_means = [data["overall"]["random"][str(k)]["score"]["mean"] for k in ks]
+    rnd_stds  = [data["overall"]["random"][str(k)]["score"]["std"]  for k in ks]
 
     ax.errorbar(ks, hyb_means, yerr=hyb_stds, marker="o", markersize=9, linewidth=2.5,
                 color=COLORS[0], label="Hybrid (наш)", capsize=6)
