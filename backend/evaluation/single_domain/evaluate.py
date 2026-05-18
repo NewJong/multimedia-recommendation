@@ -50,10 +50,10 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
-sys.path.insert(0, str(Path(__file__).parents[1]))
+sys.path.insert(0, str(Path(__file__).parents[2]))   # backend/ → finds routers, database
 
 from dotenv import load_dotenv
-load_dotenv(Path(__file__).parents[1] / ".env")
+load_dotenv(Path(__file__).parents[2] / ".env")
 
 import psycopg2
 import psycopg2.extras
