@@ -17,16 +17,6 @@ export function fmtRuntime(min: number): string | null {
   return h > 0 ? `${h}h ${m}m` : `${m}m`;
 }
 
-/**
- * RAWG serves game posters at full screenshot resolution (often 1920×1080+, 1-2 MB each).
- * Their CDN supports a resize prefix to deliver smaller variants. Use this for any
- * thumbnail context (list cards, recommendation grids) — saves ~95% bandwidth.
- *
- * RAWG only honours a finite set of widths (others return HTTP 307 redirects which
- * either slow the load or fail). Snap the requested width up to the nearest supported one.
- *
- * Pass-through for non-RAWG URLs (TMDB/Last.fm already serve appropriately sized images).
- */
 const RAWG_WIDTHS = [200, 420, 600, 640, 1280, 1920];
 
 export function thumbUrl(url: string | null | undefined, width: number = 420): string | null {
