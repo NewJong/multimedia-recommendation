@@ -138,7 +138,7 @@ export default function CrossEchoes({ anchorType, anchorId }: { anchorType: Item
       .finally(() => setLoading(false));
   }, [anchorType, anchorId]);
 
-  async function fetchExplanation(recType: ItemType, recId: number) {
+  async function fetchExplanation(recType: ItemType, recId: number, score: number) {
     const key = `${recType}-${recId}`;
     if (explanations[key]) return;   // already loaded or in-flight
 
@@ -147,7 +147,7 @@ export default function CrossEchoes({ anchorType, anchorId }: { anchorType: Item
       const r = await fetch(`${API_BASE}/cross/explain`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ pairs: [{ anchor_type: anchorType, anchor_id: anchorId, rec_type: recType, rec_id: recId }] }),
+        body:    JSON.stringify({ pairs: [{ anchor_type: anchorType, anchor_id: anchorId, rec_type: recType, rec_id: recId, score }] }),
       });
       if (!r.ok) throw new Error();
       const map: Record<string, string> = await r.json();
@@ -266,7 +266,7 @@ export default function CrossEchoes({ anchorType, anchorId }: { anchorType: Item
                                 thinking…
                               </p>
                             ) : (
-                              <button onClick={() => fetchExplanation(other, it.id)}
+                              <button onClick={() => fetchExplanation(other, it.id, it._score)}
                                 className="text-[11px] text-cyan-400/80 hover:text-cyan-300 font-medium inline-flex items-center gap-1">
                                 <span>✨</span> Why does this match?
                               </button>

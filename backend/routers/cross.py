@@ -79,39 +79,53 @@ def _fetch_cached_explanations(cur, keys: list[tuple]) -> dict[tuple, str]:
 
 def _generate_explanations(cur, pairs: list[tuple]) -> dict[tuple, str]:
     """Call Claude for each pair, write result to cache, return dict.
-    Each pair is (anchor_type, anchor_id, anchor_vibe, rec_type, rec_id, rec_vibe).
-    Only invoked when the user explicitly requests explanations (e.g. clicks a node)."""
+    Each pair is (anchor_type, anchor_id, anchor_vibe, rec_type, rec_id, rec_vibe, score)
+    where score is the displayed match percentage (0-100). The prompt adapts its tone
+    per-pair based on score: strong matches lead with shared trait, weak matches must
+    also acknowledge a key difference. Only invoked on user click."""
     if not pairs or _llm is None:
         return {}
+
+    def _instruction(score: int) -> str:
+        if score >= 75:
+            return "Strong match — lead confidently with the shared trait. Format: \"both [share/feel/have] X\"."
+        if score >= 55:
+            return "Medium match — describe what they share, then briefly contrast a key difference. Format: \"share X, but differ in Y\"."
+        return "Weak match — start with \"loosely connected\". Briefly mention the thin shared element, then explicitly contrast difference. Format: \"loosely connected by X — but one is Y while other is Z\"."
 
     new: dict[tuple, str] = {}
     for i in range(0, len(pairs), _EXPLAIN_BATCH):
         batch = pairs[i:i + _EXPLAIN_BATCH]
         pair_lines: list[str] = []
-        for idx, (_, _, a_vibe, _, _, r_vibe) in enumerate(batch, 1):
-            pair_lines.append(f"{idx}.\n  A: {(a_vibe or '').strip()[:600]}\n  B: {(r_vibe or '').strip()[:600]}")
+        for idx, (_, _, a_vibe, _, _, r_vibe, score) in enumerate(batch, 1):
+            pair_lines.append(
+                f"{idx}. [score {score}%] {_instruction(score)}\n"
+                f"  A: {(a_vibe or '').strip()[:600]}\n"
+                f"  B: {(r_vibe or '').strip()[:600]}"
+            )
         prompt = (
-            "For each pair below, write ONE short sentence (max 14 words, start lowercase, no period) "
-            "explaining in PLAIN ENGLISH what A and B share. Focus on mood, energy, or theme that a "
-            "regular person would understand instantly. Be concrete, not poetic.\n\n"
+            "For each pair below, write ONE short sentence (max 18 words, start lowercase, no period) "
+            "explaining in PLAIN ENGLISH the relationship between A and B. Each pair has a score and an "
+            "instruction telling you the tone — follow it precisely. Be concrete, not poetic.\n\n"
             "RULES:\n"
             "  - Everyday words only. NEVER use: catharsis, brooding, melancholic, sublime, "
             "ethereal, visceral, transcendent, evocative, primal, existential.\n"
             "  - No literary metaphors. No \"whispered rage\", no \"thunderous\", no \"haze\".\n"
             "  - Don't name titles, plots, mechanics, instruments, or people.\n"
-            "  - If the match feels weak, say so honestly (\"loosely connected by …\").\n\n"
-            "Good examples:\n"
-            "  both feel like driving alone at night — calm but a little lonely\n"
-            "  playful chaos with goofy characters who don't take themselves seriously\n"
-            "  high-energy and aggressive, all about pushing forward without stopping\n"
-            "  loosely connected — both have an open-world exploration feel\n\n"
+            "  - For weak/medium matches, the contrast part (\"but\", \"while\", \"though\") is mandatory.\n\n"
+            "Good examples by score band:\n"
+            "  [87%] both feel like driving alone at night — calm but a little lonely\n"
+            "  [83%] high-energy and aggressive, all about pushing forward without stopping\n"
+            "  [62%] share a slow contemplative pace, but one is hopeful while the other stays sad\n"
+            "  [57%] both have young-hero energy, though one is hopeful and bright while the other is dark and defiant\n"
+            "  [48%] loosely connected by atmospheric exploration — but one is medieval fantasy while the other is urban modern\n\n"
             f"Return raw JSON: {{\"explanations\":[\"...\",\"...\"]}} — exactly {len(batch)} strings, same order.\n\n"
             "Pairs:\n" + "\n\n".join(pair_lines)
         )
         try:
             msg = _llm.messages.create(
                 model=_LLM_MODEL,
-                max_tokens=60 * len(batch),
+                max_tokens=80 * len(batch),
                 messages=[{"role": "user", "content": prompt}],
             )
             raw = msg.content[0].text.strip()
@@ -124,7 +138,7 @@ def _generate_explanations(cur, pairs: list[tuple]) -> dict[tuple, str]:
         except Exception:
             sentences = []
 
-        for j, (a_t, a_id, _, r_t, r_id, _) in enumerate(batch):
+        for j, (a_t, a_id, _, r_t, r_id, _, _) in enumerate(batch):
             sent = sentences[j].strip() if j < len(sentences) and isinstance(sentences[j], str) else ""
             if sent:
                 new[(a_t, a_id, r_t, r_id)] = sent
@@ -253,6 +267,7 @@ class _ExplainPair(BaseModel):
     anchor_id:   int
     rec_type:    str
     rec_id:      int
+    score:       int = 70   # displayed match % — drives prompt tone (>=75 strong / 55-74 medium / <55 weak)
 
 
 class _ExplainRequest(BaseModel):
@@ -273,6 +288,8 @@ def explain_pairs(body: _ExplainRequest):
             raise HTTPException(status_code=400, detail="Invalid type")
 
     keys = [(p.anchor_type, p.anchor_id, p.rec_type, p.rec_id) for p in body.pairs]
+    # Lookup score per pair — drives score-aware prompt in _generate_explanations.
+    score_by_key = {(p.anchor_type, p.anchor_id, p.rec_type, p.rec_id): p.score for p in body.pairs}
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -297,7 +314,8 @@ def explain_pairs(body: _ExplainRequest):
                         vibes[(t, r["id"])] = r["vibe_text"] or ""
 
                 pairs_to_gen = [
-                    (a_t, a_id, vibes.get((a_t, a_id), ""), r_t, r_id, vibes.get((r_t, r_id), ""))
+                    (a_t, a_id, vibes.get((a_t, a_id), ""), r_t, r_id, vibes.get((r_t, r_id), ""),
+                     score_by_key.get((a_t, a_id, r_t, r_id), 70))
                     for a_t, a_id, r_t, r_id in missing
                 ]
                 new = _generate_explanations(cur, pairs_to_gen)
