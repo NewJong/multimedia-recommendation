@@ -1,6 +1,3 @@
-"""Human-readable analysis of single-domain evaluation results.
-Reads results.json and prints every number with a plain-Ukrainian interpretation
-so the meaning is clear even without statistical background."""
 import json
 import sys
 from pathlib import Path
@@ -51,7 +48,6 @@ print(f"\nЕксперимент: {data['metadata']['personas_count']} synthetic
       f"{data['metadata']['n_runs']} посівів × "
       f"{data['metadata']['sample_size_per_persona']} лайків train.")
 
-# ── Overall ──────────────────────────────────────────────────────────────────
 print("\n" + "─" * 88)
 print("  ЗАГАЛЬНІ РЕЗУЛЬТАТИ (усереднено по 15 personas × 5 посівах)")
 print("─" * 88)
@@ -69,7 +65,6 @@ for algo in ("tfidf", "pop", "rand"):
         print(f"      MRR:       {fmt(m['mean'], m['std'])}  →  {interpret_mrr(m['mean'])}")
         print(f"      Стабільність (std): {interpret_std(p['std'])}")
 
-# ── Per-domain ───────────────────────────────────────────────────────────────
 print("\n" + "─" * 88)
 print("  ПО ДОМЕНАХ (TF-IDF в порівнянні з baseline'ами)")
 print("─" * 88)
@@ -88,7 +83,6 @@ for domain in ("game", "movie", "track"):
               f"P@10={fmt(p10['mean'], p10['std'])}  "
               f"MRR@10={fmt(m10['mean'], m10['std'])}")
 
-# ── Lift ──────────────────────────────────────────────────────────────────────
 print("\n" + "─" * 88)
 print("  LIFT — у скільки разів TF-IDF кращий за baseline'и")
 print("─" * 88)
@@ -105,7 +99,6 @@ for metric_key in ("p@10", "r@10", "mrr@10"):
     r_lift = tf / rand[metric_key]["mean"]  if rand[metric_key]["mean"] > 0 else float('inf')
     print(f"  {metric_key.upper():<13} {tf:.3f}    {p_lift:>5.2f}×          {r_lift:>5.2f}×")
 
-# ── Headline takeaways ───────────────────────────────────────────────────────
 print("\n" + "═" * 88)
 print("  ГОЛОВНІ ВИСНОВКИ ДЛЯ ДИПЛОМА (готові цитати)")
 print("═" * 88)

@@ -1,8 +1,3 @@
-"""
-Fetches up to 100 NEW movies from TMDB and inserts them into the existing table.
-Does NOT drop or recreate the table.
-Run: python seed_movies.py
-"""
 import sys, httpx, psycopg2, psycopg2.extras, time
 from dotenv import load_dotenv
 from pathlib import Path

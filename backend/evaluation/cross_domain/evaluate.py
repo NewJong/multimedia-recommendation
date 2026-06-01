@@ -1,44 +1,3 @@
-"""
-evaluate.py — Експериментальна оцінка cross-domain рекомендацій.
-
-═══════════════════════════════════════════════════════════════════════════════
-ЩО ЦЕ:
-  Cross-domain не має labeled ground truth ("цей фільм має match'итись з цією
-  грою" ніхто не розмічав). Тому ми не можемо рахувати чисту Precision@K як
-  у single-domain. Замість того порівнюємо НАШ алгоритм проти RANDOM baseline
-  по чотирьох метриках:
-
-    1. Score lift @K       — наскільки top-K оцінки вищі за випадкові пари
-    2. Tag-overlap lift @K — наскільки top-K мають більше спільних тегів за випадкові
-    3. Ranking discrimination — наскільки крутий score-gradient від rank-1 до rank-15
-    4. Hybrid vs Semantic-only ablation — доводить що +tag-bonus реально допомагає
-
-  Усе ще плюс per-domain-pair breakdown: 6 спрямованих пар
-  (track→movies, track→games, movie→tracks, movie→games, game→tracks, game→movies).
-
-НАВІЩО:
-  Глава "Експериментальна оцінка cross-domain" у дипломі. Без чисел захист
-  cross-domain буде шатким: можна лише показати приклади. З числами:
-  "наш алгоритм у Х разів вищий за random на raw-score lift і в Y разів
-   вищий за tag-overlap. Tag-bonus додає +Z%."
-
-МЕТОДОЛОГІЯ:
-  • Семплимо N_ANCHORS_PER_DOMAIN випадкових айтемів з embedding у кожному домені
-  • Для кожного anchor у двох other-доменах робимо:
-      a) top-K hybrid       — semantic + tag bonus (наш production-алгоритм)
-      b) top-K semantic     — pure cosine, без bonus (ablation)
-      c) random K           — K випадкових айтемів того домену
-  • Рахуємо метрики для кожного зразка, усереднюємо
-  • Повторюємо з SEEDS різними random seeds для довірчих інтервалів
-
-ЯК ЗАПУСКАТИ:
-  cd backend
-  python evaluation/cross_domain/evaluate.py
-
-ВИВІД:
-  • stdout                                          — людська таблиця per-pair + overall
-  • backend/evaluation/cross_domain/results.json    — для диплому + charts
-"""
 import os
 import sys
 import json
@@ -48,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
-sys.path.insert(0, str(Path(__file__).parents[2]))   # backend/ → finds routers, database
+sys.path.insert(0, str(Path(__file__).parents[2]))
 
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parents[2] / ".env")
@@ -62,9 +21,9 @@ from routers.cross import (
 )
 
 
-SEEDS = [42, 100, 200, 300, 400]   
-N_ANCHORS_PER_DOMAIN = 25          
-K_VALUES = [1, 5, 15]              
+SEEDS = [42, 100, 200, 300, 400]
+N_ANCHORS_PER_DOMAIN = 25
+K_VALUES = [1, 5, 15]
 
 DOMAIN_PAIRS = [
     ("track", "movie"), ("track", "game"),
@@ -80,15 +39,11 @@ def get_conn():
 
 
 def fetch_items(cur, item_type: str) -> list[dict]:
-    """Pull every item that has an embedding — these are the pool for both
-    anchors (sampled subset) and ranking candidates."""
     cur.execute(f"SELECT * FROM {TABLE[item_type]} WHERE embedding IS NOT NULL")
     return [dict(r) for r in cur.fetchall()]
 
 
 def cross_rec_hybrid(cur, anchor: dict, anchor_type: str, other_type: str, k: int):
-    """Production algorithm: pgvector semantic + Python tag-bonus re-rank.
-    Returns list[(item_dict, hybrid_score, semantic_score, shared_tags)] sorted desc."""
     other_table = TABLE[other_type]
     cur.execute(f"""
         SELECT *, 1 - (embedding <=> %s::vector) AS _sem
@@ -113,7 +68,6 @@ def cross_rec_hybrid(cur, anchor: dict, anchor_type: str, other_type: str, k: in
 
 
 def cross_rec_semantic_only(cur, anchor: dict, anchor_type: str, other_type: str, k: int):
-    """Ablation: pure cosine, no tag bonus. Useful to prove the bonus contributes."""
     other_table = TABLE[other_type]
     cur.execute(f"""
         SELECT *, 1 - (embedding <=> %s::vector) AS _sem
@@ -128,15 +82,12 @@ def cross_rec_semantic_only(cur, anchor: dict, anchor_type: str, other_type: str
         row = dict(r)
         sem = float(row["_sem"])
         shared = anchor_tags & _collect_tags(row, other_type)
-        out.append((row, sem, sem, shared))    
+        out.append((row, sem, sem, shared))
     return out
 
 
 def cross_rec_random(cur, anchor: dict, anchor_type: str, other_type: str,
                      other_pool: list[dict], k: int, rng: random.Random):
-    """Random K items from the other-domain pool. Semantic score IS computed via
-    pgvector for fair comparison against hybrid/semantic — otherwise the random
-    baseline would be zero and the lift metric meaningless."""
     sampled = rng.sample(other_pool, min(k, len(other_pool)))
     sampled_ids = [r["id"] for r in sampled]
 
@@ -152,32 +103,26 @@ def cross_rec_random(cur, anchor: dict, anchor_type: str, other_type: str,
     for r in sampled:
         sem = sem_by_id.get(r["id"], 0.0)
         shared = anchor_tags & _collect_tags(r, other_type)
-        # Random has no tag-bonus re-ranker, so hybrid == semantic here.
         out.append((r, sem, sem, shared))
     return out
 
 
 def avg_score(scored: list, score_idx: int) -> float:
-    """Mean of one score column (1=hybrid, 2=semantic). 0 if empty."""
     if not scored: return 0.0
     return sum(s[score_idx] for s in scored) / len(scored)
 
 
 def avg_shared_tags(scored: list) -> float:
-    """Mean count of shared tags across the K results."""
     if not scored: return 0.0
     return sum(len(s[3]) for s in scored) / len(scored)
 
 
 def fraction_with_overlap(scored: list) -> float:
-    """% of results with ≥1 shared tag. Cleaner than averages when most overlaps are 0."""
     if not scored: return 0.0
     return sum(1 for s in scored if len(s[3]) > 0) / len(scored)
 
 
 def evaluate_once(seed: int, items_by_type: dict[str, list[dict]]) -> dict:
-    """One pass: per (anchor_type → other_type) sample N anchors, run 3 algos,
-    record metrics. Returns nested dict pair→algo→k→metric."""
     rng = random.Random(seed)
     conn = get_conn()
     result: dict = {}
@@ -199,8 +144,8 @@ def evaluate_once(seed: int, items_by_type: dict[str, list[dict]]) -> dict:
                     for k in K_VALUES:
                         for algo_name, top in (("hybrid", hybrid_top), ("semantic", semantic_top), ("random", random_top)):
                             slice_ = top[:k]
-                            result[pair_key][algo_name][k]["score"].append(avg_score(slice_, 2))          
-                            result[pair_key][algo_name][k]["hybrid_score"].append(avg_score(slice_, 1))   
+                            result[pair_key][algo_name][k]["score"].append(avg_score(slice_, 2))
+                            result[pair_key][algo_name][k]["hybrid_score"].append(avg_score(slice_, 1))
                             result[pair_key][algo_name][k]["shared_tags"].append(avg_shared_tags(slice_))
                             result[pair_key][algo_name][k]["overlap_rate"].append(fraction_with_overlap(slice_))
     finally:
@@ -216,9 +161,6 @@ def mean_std(values: list[float]) -> tuple[float, float]:
 
 
 def aggregate(all_runs: list[dict]) -> dict:
-    """Across seeds: for each pair / algo / k / metric → (mean, std).
-    Per-seed value = mean across that seed's anchors.
-    K is stringified for clean JSON roundtripping (`results["overall"]["hybrid"]["5"]`)."""
     metrics = ("score", "hybrid_score", "shared_tags", "overlap_rate")
     out: dict = {}
     for pair_key in all_runs[0].keys():
@@ -238,7 +180,6 @@ def aggregate(all_runs: list[dict]) -> dict:
 
 
 def aggregate_overall(per_pair: dict) -> dict:
-    """Average across the 6 directional pairs for headline numbers."""
     metrics = ("score", "hybrid_score", "shared_tags", "overlap_rate")
     out: dict = {}
     for algo in ("hybrid", "semantic", "random"):
@@ -257,28 +198,28 @@ def fmt(m, s): return f"{m:.3f} ± {s:.3f}"
 
 
 def print_report(per_pair: dict, overall: dict, n_seeds: int):
-    sep = "═" * 102
+    sep = "=" * 102
     print(f"\n{sep}")
     print(f"  CROSS-DOMAIN EVALUATION — mean ± std across {n_seeds} seeds, "
           f"{N_ANCHORS_PER_DOMAIN} anchors/domain")
     print(sep)
 
-    print(f"\n── PER-PAIR BREAKDOWN @ K=5 " + "─" * 75)
+    print(f"\n-- PER-PAIR BREAKDOWN @ K=5 " + "-" * 75)
     print(f"  {'Pair':<22}  {'Algo':<10}  {'sem_score':>13}  {'shared_tags':>13}  {'overlap_rate':>13}")
     print(f"  {'-'*22}  {'-'*10}  {'-'*13}  {'-'*13}  {'-'*13}")
     for pair_key, pair_data in per_pair.items():
         for algo in ("hybrid", "semantic", "random"):
             d = pair_data[algo]["5"]
-            label_pair = pair_key.replace("->", " → ") if algo == "hybrid" else ""
+            label_pair = pair_key.replace("->", " -> ") if algo == "hybrid" else ""
             print(
                 f"  {label_pair:<22}  {algo:<10}  "
                 f"{fmt(d['score']['mean'], d['score']['std']):>13}  "
                 f"{fmt(d['shared_tags']['mean'], d['shared_tags']['std']):>13}  "
                 f"{fmt(d['overlap_rate']['mean'], d['overlap_rate']['std']):>13}"
             )
-        print()  
+        print()
 
-    print(f"\n── OVERALL @ K=5 (averaged over 6 domain-pairs × {n_seeds} seeds) " + "─" * 30)
+    print(f"\n-- OVERALL @ K=5 (averaged over 6 domain-pairs x {n_seeds} seeds) " + "-" * 30)
     print(f"  {'Algorithm':<14}  {'sem_score':>14}  {'shared_tags':>14}  {'overlap_rate':>14}")
     print(f"  {'-'*14}  {'-'*14}  {'-'*14}  {'-'*14}")
     for algo in ("hybrid", "semantic", "random"):
@@ -290,29 +231,29 @@ def print_report(per_pair: dict, overall: dict, n_seeds: int):
             f"{fmt(d['overlap_rate']['mean'], d['overlap_rate']['std']):>14}"
         )
 
-    print(f"\n── LIFT @ K=5 (Hybrid / Random) " + "─" * 60)
+    print(f"\n-- LIFT @ K=5 (Hybrid / Random) " + "-" * 60)
     hyb  = overall["hybrid"]["5"]
     sem  = overall["semantic"]["5"]
     rnd  = overall["random"]["5"]
-    print(f"  Semantic score      Hybrid={hyb['score']['mean']:.3f}  vs Random={rnd['score']['mean']:.3f}  → "
-          f"{(hyb['score']['mean'] / rnd['score']['mean']) if rnd['score']['mean'] > 0 else float('inf'):.2f}× lift")
-    print(f"  Shared tags         Hybrid={hyb['shared_tags']['mean']:.3f}  vs Random={rnd['shared_tags']['mean']:.3f}  → "
-          f"{(hyb['shared_tags']['mean'] / rnd['shared_tags']['mean']) if rnd['shared_tags']['mean'] > 0 else float('inf'):.2f}× lift")
-    print(f"  Overlap rate        Hybrid={hyb['overlap_rate']['mean']:.1%}  vs Random={rnd['overlap_rate']['mean']:.1%}  → "
-          f"{(hyb['overlap_rate']['mean'] / rnd['overlap_rate']['mean']) if rnd['overlap_rate']['mean'] > 0 else float('inf'):.2f}× lift")
+    print(f"  Semantic score      Hybrid={hyb['score']['mean']:.3f}  vs Random={rnd['score']['mean']:.3f}  -> "
+          f"{(hyb['score']['mean'] / rnd['score']['mean']) if rnd['score']['mean'] > 0 else float('inf'):.2f}x lift")
+    print(f"  Shared tags         Hybrid={hyb['shared_tags']['mean']:.3f}  vs Random={rnd['shared_tags']['mean']:.3f}  -> "
+          f"{(hyb['shared_tags']['mean'] / rnd['shared_tags']['mean']) if rnd['shared_tags']['mean'] > 0 else float('inf'):.2f}x lift")
+    print(f"  Overlap rate        Hybrid={hyb['overlap_rate']['mean']:.1%}  vs Random={rnd['overlap_rate']['mean']:.1%}  -> "
+          f"{(hyb['overlap_rate']['mean'] / rnd['overlap_rate']['mean']) if rnd['overlap_rate']['mean'] > 0 else float('inf'):.2f}x lift")
 
-    print(f"\n── HYBRID vs PURE SEMANTIC (tag-bonus contribution) " + "─" * 45)
-    print(f"  Semantic score      Hybrid={hyb['score']['mean']:.3f}  vs Sem={sem['score']['mean']:.3f}  → "
-          f"Δ={(hyb['score']['mean'] - sem['score']['mean']):.3f}")
-    print(f"  Shared tags         Hybrid={hyb['shared_tags']['mean']:.3f}  vs Sem={sem['shared_tags']['mean']:.3f}  → "
-          f"Δ={(hyb['shared_tags']['mean'] - sem['shared_tags']['mean']):.3f}")
+    print(f"\n-- HYBRID vs PURE SEMANTIC (tag-bonus contribution) " + "-" * 45)
+    print(f"  Semantic score      Hybrid={hyb['score']['mean']:.3f}  vs Sem={sem['score']['mean']:.3f}  -> "
+          f"delta={(hyb['score']['mean'] - sem['score']['mean']):.3f}")
+    print(f"  Shared tags         Hybrid={hyb['shared_tags']['mean']:.3f}  vs Sem={sem['shared_tags']['mean']:.3f}  -> "
+          f"delta={(hyb['shared_tags']['mean'] - sem['shared_tags']['mean']):.3f}")
 
-    print(f"\n── RANKING DISCRIMINATION (Hybrid semantic-score by rank) " + "─" * 40)
-    print(f"  {'K':>4}  {'Mean score':>14}  {'Δ vs Random':>14}")
+    print(f"\n-- RANKING DISCRIMINATION (Hybrid semantic-score by rank) " + "-" * 40)
+    print(f"  {'K':>4}  {'Mean score':>14}  {'Delta vs Random':>16}")
     for k in K_VALUES:
         h = overall["hybrid"][str(k)]["score"]["mean"]
         r = overall["random"][str(k)]["score"]["mean"]
-        print(f"  {k:>4}  {h:>14.4f}  {(h - r):>14.4f}")
+        print(f"  {k:>4}  {h:>14.4f}  {(h - r):>16.4f}")
     print()
 
 
@@ -324,13 +265,6 @@ def save_json(per_pair: dict, overall: dict, seeds: list, n_anchors: int, out_pa
             "n_anchors_per_domain": n_anchors,
             "k_values": K_VALUES,
             "domain_pairs": [f"{a}->{b}" for a, b in DOMAIN_PAIRS],
-            "methodology": (
-                "For each (anchor_type → other_type) direction we sample N anchors "
-                "with embedding, run three algorithms (hybrid = production = semantic + "
-                "tag-bonus; semantic = pure cosine; random = K random items from the other "
-                "domain), and record raw semantic score, shared-tag count, and overlap rate. "
-                "We aggregate per-seed means across anchors, then mean ± std across seeds."
-            ),
         },
         "overall": overall,
         "per_pair": per_pair,
@@ -339,7 +273,7 @@ def save_json(per_pair: dict, overall: dict, seeds: list, n_anchors: int, out_pa
 
 
 def main():
-    print(f"Завантажуємо айтеми з embedding…")
+    print("Loading items with embeddings...")
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -348,17 +282,17 @@ def main():
         conn.close()
 
     counts = ", ".join(f"{t}={len(v)}" for t, v in items_by_type.items())
-    print(f"  → {counts}")
+    print(f"  -> {counts}")
     if any(len(v) < N_ANCHORS_PER_DOMAIN + 5 for v in items_by_type.values()):
-        print(f"  ⚠️  один з доменів має < {N_ANCHORS_PER_DOMAIN + 5} айтемів з embedding — результати будуть шумними.")
+        print(f"  Warning: one domain has < {N_ANCHORS_PER_DOMAIN + 5} items with embedding.")
 
-    print(f"\nПрогоняємо evaluation з {len(SEEDS)} різними seeds, "
-          f"{N_ANCHORS_PER_DOMAIN} anchors/domain × 2 other-domains = "
-          f"{N_ANCHORS_PER_DOMAIN * 6} pairs per seed…\n")
+    print(f"\nRunning evaluation with {len(SEEDS)} seeds, "
+          f"{N_ANCHORS_PER_DOMAIN} anchors/domain x 2 other-domains = "
+          f"{N_ANCHORS_PER_DOMAIN * 6} pairs per seed...\n")
 
     all_runs = []
     for seed in SEEDS:
-        print(f"  Seed {seed}…", end=" ", flush=True)
+        print(f"  Seed {seed}...", end=" ", flush=True)
         result = evaluate_once(seed, items_by_type)
         all_runs.append(result)
         hyb_means = []
@@ -374,7 +308,7 @@ def main():
 
     out_path = Path(__file__).parent / "results.json"
     save_json(per_pair, overall, SEEDS, N_ANCHORS_PER_DOMAIN, out_path)
-    print(f"✓ Результати → {out_path}")
+    print(f"Results saved to {out_path}")
 
 
 if __name__ == "__main__":

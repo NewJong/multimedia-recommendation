@@ -1,15 +1,3 @@
-"""
-generate_charts.py — cross-domain evaluation charts for the diploma.
-
-Reads results.json (must be in the same folder) and produces:
-  • chart_lift.png       — main headline: hybrid vs semantic vs random across 3 metrics @ K=5
-  • chart_per_pair.png   — 6 domain-pair breakdown by raw semantic score @ K=5
-  • chart_ranking.png    — score gradient by rank K (1, 5, 15): hybrid vs random
-
-ЗАПУСКАТИ:
-  cd backend
-  python evaluation/cross_domain/generate_charts.py
-"""
 import json
 import sys
 from pathlib import Path
@@ -23,7 +11,7 @@ THIS_DIR = Path(__file__).parent
 data = json.load(open(THIS_DIR / "results.json", encoding="utf-8"))
 
 ALGOS  = ["hybrid", "semantic", "random"]
-LABELS = ["Hybrid (наш)", "Semantic only", "Random"]
+LABELS = ["Hybrid", "Semantic only", "Random"]
 COLORS = ["#06b6d4", "#a78bfa", "#94a3b8"]   
 
 
@@ -123,7 +111,7 @@ def chart_ranking():
     rnd_stds  = [data["overall"]["random"][str(k)]["score"]["std"]  for k in ks]
 
     ax.errorbar(ks, hyb_means, yerr=hyb_stds, marker="o", markersize=9, linewidth=2.5,
-                color=COLORS[0], label="Hybrid (наш)", capsize=6)
+                color=COLORS[0], label="Hybrid", capsize=6)
     ax.errorbar(ks, sem_means, yerr=sem_stds, marker="s", markersize=8, linewidth=2,
                 color=COLORS[1], label="Semantic only", capsize=6, linestyle="--")
     ax.errorbar(ks, rnd_means, yerr=rnd_stds, marker="^", markersize=8, linewidth=2,

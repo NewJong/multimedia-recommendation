@@ -1,8 +1,3 @@
-"""
-Fetches up to 100 NEW tracks from Last.fm and inserts them into the existing table.
-Skips tracks already present in DB before making any API calls.
-Run: python seed_tracks.py
-"""
 import sys, httpx, psycopg2, psycopg2.extras, time, re
 from dotenv import load_dotenv
 from pathlib import Path

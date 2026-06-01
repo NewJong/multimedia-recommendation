@@ -44,7 +44,6 @@ class SearchBody(BaseModel):
 
 
 def _substring_match(q: str, tracks: list, movies: list, games: list):
-    """Literal substring match across titles, artists, directors, genres, tags."""
     ql = q.lower()
     def mt(t): return (
         ql in t["name"].lower() or ql in t.get("artist", "").lower()
@@ -68,8 +67,6 @@ def _substring_match(q: str, tracks: list, movies: list, games: list):
 
 
 def _embedding_match(q: str, tables: tuple[str, ...], top_per_domain: int = 3):
-    """Semantic supplement: embed query, run pgvector cosine for top items per domain.
-    Only queries the tables passed in — skip domains that already have enough substring hits."""
     if not tables:
         return {}
     model = _get_st_model()

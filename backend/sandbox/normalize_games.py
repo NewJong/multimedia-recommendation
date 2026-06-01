@@ -1,10 +1,3 @@
-"""
-Cleans genres + tags for all games already in DB:
-  - Removes noise tags (platform status, ESRB duplicates, technical flags)
-  - Merges synonyms to canonical form
-  - Deduplicates within each game
-Run: python normalize_games.py
-"""
 import sys, psycopg2, psycopg2.extras
 from dotenv import load_dotenv
 from pathlib import Path

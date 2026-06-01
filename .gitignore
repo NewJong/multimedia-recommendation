@@ -42,8 +42,5 @@ yarn-debug.log*
 
 *.sqlite
 *.db
-backend/create_likes.py
-idea.txt
-last.txt
-rec.txt
 *.txt
+*.md

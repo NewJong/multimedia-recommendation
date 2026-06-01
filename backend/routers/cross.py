@@ -15,7 +15,7 @@ except Exception:
 router = APIRouter(prefix="/cross", tags=["cross"])
 
 _LLM_MODEL = "claude-haiku-4-5-20251001"
-_EXPLAIN_BATCH = 12  
+_EXPLAIN_BATCH = 12
 
 TABLE = {"track": "tracks", "movie": "movies", "game": "games"}
 TAG_FIELDS = {
@@ -24,16 +24,16 @@ TAG_FIELDS = {
     "game":  ("genres", "tags"),
 }
 
-SHARED_TAG_BONUS = 0.07   
-MAX_TAG_BONUS    = 0.35   
-POOL_MULT        = 4      
+SHARED_TAG_BONUS = 0.07
+MAX_TAG_BONUS    = 0.35
+POOL_MULT        = 4
 DISPLAY_BASELINE = 0.50
 DISPLAY_SCALE    = 2.0
 
 
 def _calibrate(raw: float) -> int:
-    """Map raw cosine-like score [0, 1] to displayed percentage [0, 100]."""
     return round(max(0.0, min(1.0, (raw - DISPLAY_BASELINE) * DISPLAY_SCALE)) * 100)
+
 
 TITLE_STOPWORDS = {
     "the", "and", "for", "with", "from", "into", "your", "this", "that",
@@ -58,8 +58,6 @@ def _collect_tags(row: dict, item_type: str) -> set[str]:
 
 
 def _fetch_cached_explanations(cur, keys: list[tuple]) -> dict[tuple, str]:
-    """Look up cached explanations for (anchor_type, anchor_id, rec_type, rec_id)
-    tuples. Pure cache read — never calls Claude."""
     if not keys:
         return {}
     placeholders = ",".join(["(%s,%s,%s,%s)"] * len(keys))
@@ -78,11 +76,6 @@ def _fetch_cached_explanations(cur, keys: list[tuple]) -> dict[tuple, str]:
 
 
 def _generate_explanations(cur, pairs: list[tuple]) -> dict[tuple, str]:
-    """Call Claude for each pair, write result to cache, return dict.
-    Each pair is (anchor_type, anchor_id, anchor_vibe, rec_type, rec_id, rec_vibe, score)
-    where score is the displayed match percentage (0-100). The prompt adapts its tone
-    per-pair based on score: strong matches lead with shared trait, weak matches must
-    also acknowledge a key difference. Only invoked on user click."""
     if not pairs or _llm is None:
         return {}
 
@@ -158,7 +151,6 @@ def _generate_explanations(cur, pairs: list[tuple]) -> dict[tuple, str]:
 
 
 def _node_payload(row: dict, item_type: str, is_liked: bool) -> dict:
-    """Compact node payload for the graph view — strip embedding/vibe_text from response."""
     return {
         "id":           f"{item_type}-{row['id']}",
         "raw_id":       row["id"],
@@ -174,12 +166,6 @@ def _node_payload(row: dict, item_type: str, is_liked: bool) -> dict:
 
 @router.get("/graph/{uid}")
 def discover_graph(uid: str, k: int = Query(1, ge=1, le=3)):
-    """Whole-library taste graph. For each of the user's liked items, find the
-    top-k semantic matches in each of the two other domains. Returns nodes (likes
-    plus rec items) and edges (with cached AI explanations).
-
-    k=1 (default) gives ~2 edges per like — readable density. k=2 doubles edges.
-    """
     conn = get_conn()
     try:
         with conn.cursor() as cur:
@@ -249,7 +235,7 @@ def discover_graph(uid: str, k: int = Query(1, ge=1, le=3)):
                             "target":      node_id,
                             "score":       _calibrate(hybrid),
                             "shared_tags": shared_tags,
-                            "explanation": None,   
+                            "explanation": None,
                         })
                         edge_keys.append((a_type, a_id, other_type, r_id))
 
@@ -267,7 +253,7 @@ class _ExplainPair(BaseModel):
     anchor_id:   int
     rec_type:    str
     rec_id:      int
-    score:       int = 70   # displayed match % — drives prompt tone (>=75 strong / 55-74 medium / <55 weak)
+    score:       int = 70
 
 
 class _ExplainRequest(BaseModel):
@@ -276,11 +262,6 @@ class _ExplainRequest(BaseModel):
 
 @router.post("/explain")
 def explain_pairs(body: _ExplainRequest):
-    """On-demand explanations. Frontend calls this when the user opens a node's
-    side panel. Returns one sentence per requested (anchor → rec) pair, hitting
-    the cache first and only calling Claude for genuine misses. Response shape:
-        { "<a_type>-<a_id>__<r_type>-<r_id>": "the sentence", ... }
-    """
     if not body.pairs:
         return {}
     for p in body.pairs:
@@ -288,7 +269,6 @@ def explain_pairs(body: _ExplainRequest):
             raise HTTPException(status_code=400, detail="Invalid type")
 
     keys = [(p.anchor_type, p.anchor_id, p.rec_type, p.rec_id) for p in body.pairs]
-    # Lookup score per pair — drives score-aware prompt in _generate_explanations.
     score_by_key = {(p.anchor_type, p.anchor_id, p.rec_type, p.rec_id): p.score for p in body.pairs}
     conn = get_conn()
     try:
@@ -348,7 +328,7 @@ def cross_recommendations(anchor_type: str, anchor_id: int, k: int = Query(5, ge
                 raise HTTPException(status_code=404, detail="Anchor not found")
             anchor = dict(anchor_row)
             if anchor.get("embedding") is None:
-                raise HTTPException(status_code=409, detail="Anchor has no embedding — run embed_items.py")
+                raise HTTPException(status_code=409, detail="Anchor has no embedding")
 
             anchor_tags = _collect_tags(anchor, anchor_type)
             result: dict = {"anchor": serialize_rows([anchor])[0]}

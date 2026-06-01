@@ -1,16 +1,3 @@
-"""
-generate_charts.py — стовпчасті діаграми результатів evaluation.
-
-Читає results.json (має бути в тій самій папці) і генерує:
-  • chart_overall.png  — 3 subplots (P@10, R@10, MRR@10), per-domain
-  • chart_lift.png     — single chart: lift TF-IDF над baselines
-
-Для глави диплому "Експериментальна оцінка" / "Результати дослідження".
-
-ЗАПУСКАТИ:
-  cd backend
-  python evaluation/single_domain/generate_charts.py
-"""
 import json
 import sys
 from pathlib import Path
@@ -27,7 +14,7 @@ metrics      = [("p@10", "Precision@10"), ("r@10", "Recall@10"), ("mrr@10", "MRR
 domains      = ["game", "movie", "track"]
 domain_labels = ["Games", "Movies", "Tracks"]
 algos        = ["tfidf", "pop", "rand"]
-algo_labels  = ["TF-IDF (наш)", "Popularity", "Random"]
+algo_labels  = ["TF-IDF", "Popularity", "Random"]
 colors       = ["#2563eb", "#fb923c", "#94a3b8"]  
 
 fig, axes = plt.subplots(1, 3, figsize=(15, 5.5))
@@ -85,7 +72,7 @@ s_pop   = [pop[k]["std"]    for k in metric_keys]
 m_rand  = [rand[k]["mean"]  for k in metric_keys]
 s_rand  = [rand[k]["std"]   for k in metric_keys]
 
-b1 = ax.bar(x2 - width2, m_tfidf, width2, yerr=s_tfidf, label="TF-IDF (наш)",
+b1 = ax.bar(x2 - width2, m_tfidf, width2, yerr=s_tfidf, label="TF-IDF",
             color="#2563eb", capsize=5, edgecolor="black", linewidth=0.5)
 b2 = ax.bar(x2,          m_pop,   width2, yerr=s_pop,   label="Popularity",
             color="#fb923c", capsize=5, edgecolor="black", linewidth=0.5)

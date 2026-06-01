@@ -1,6 +1,3 @@
-"""Pick interesting anchors from each domain and print their top cross-domain
-matches with shared tags + AI explanations. Lets us eyeball whether the algorithm
-actually works on items with distinct themes."""
 import os, sys, json
 from pathlib import Path
 
@@ -18,7 +15,6 @@ def get_conn():
     return psycopg2.connect(os.getenv("DATABASE_URL"), cursor_factory=psycopg2.extras.RealDictCursor)
 
 
-# Curated anchors covering diverse themes so we can judge quality across the spectrum.
 ANCHORS_BY_TITLE = [
     ("movie", "The Dark Knight"),
     ("movie", "Pulp Fiction"),
@@ -27,8 +23,8 @@ ANCHORS_BY_TITLE = [
     ("game",  "The Witcher 3: Wild Hunt"),
     ("game",  "Doom"),
     ("game",  "Stardew Valley"),
-    ("track", "Black"),       # Pearl Jam
-    ("track", "Hurt"),        # NIN
+    ("track", "Black"),
+    ("track", "Hurt"),
 ]
 
 
@@ -87,8 +83,8 @@ def main():
                 results = []
 
                 for other in [t for t in TABLE if t != anchor_type]:
-                    matches = cross_for_anchor(cur, anchor, anchor_type, other, k=3)
-                    print(f"\n  → Top-3 {other.upper()}S:")
+                    matches = cross_for_anchor(cur, anchor, anchor_type, other, k=10)
+                    print(f"\n  → Top-10 {other.upper()}S:")
                     for rank, (item, hybrid, sem, shared) in enumerate(matches, 1):
                         cal = _calibrate(hybrid)
                         print(f"    {rank}. [{cal:>2}%]  {title_of(item, other):<50}  "
@@ -97,6 +93,7 @@ def main():
                         pairs_for_llm.append((
                             anchor_type, anchor["id"], anchor.get("vibe_text") or "",
                             other, item["id"], item.get("vibe_text") or "",
+                            cal,
                         ))
 
                 # Generate explanations for ALL of this anchor's pairs at once

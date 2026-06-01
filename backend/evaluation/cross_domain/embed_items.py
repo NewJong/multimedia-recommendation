@@ -1,45 +1,3 @@
-"""
-LLM-augmented embedding pipeline for cross-domain recommendations.
-
-For each item (track/movie/game) we:
-  1. Send its metadata to Claude Haiku, which writes a 60-90 word
-     experiential paragraph using a DOMAIN-AGNOSTIC vocabulary
-     (mood, tempo, atmosphere, activity-fit) — see VIBE_SYSTEM.
-  2. Store that paragraph in `vibe_text`.
-  3. Embed the VIBE paragraph (not the raw metadata) via
-     sentence-transformers/all-MiniLM-L6-v2 into a 384-dim vector,
-     stored in `embedding`.
-
-Why: raw metadata uses domain-specific language (plot vs gameplay
-vs album notes) — cross-domain cosine on those embeddings is weak.
-The LLM acts as a semantic normalizer that maps heterogeneous text
-into a shared experiential space, so cosine in that space measures
-vibe affinity rather than lexical overlap.
-
-Prereq (run once in Neon SQL console):
-    CREATE EXTENSION IF NOT EXISTS vector;
-    ALTER TABLE tracks ADD COLUMN IF NOT EXISTS embedding vector(384);
-    ALTER TABLE movies ADD COLUMN IF NOT EXISTS embedding vector(384);
-    ALTER TABLE games  ADD COLUMN IF NOT EXISTS embedding vector(384);
-    ALTER TABLE tracks ADD COLUMN IF NOT EXISTS vibe_text TEXT;
-    ALTER TABLE movies ADD COLUMN IF NOT EXISTS vibe_text TEXT;
-    ALTER TABLE games  ADD COLUMN IF NOT EXISTS vibe_text TEXT;
-
-Install:
-    pip install sentence-transformers anthropic
-
-Pilot run (5 items per domain — inspect vibe quality, test /discover):
-    python backend/evaluation/cross_domain/embed_items.py --sample 5
-
-Full run (all items missing vibe_text):
-    python backend/evaluation/cross_domain/embed_items.py
-
-Regenerate everything from scratch:
-    python backend/evaluation/cross_domain/embed_items.py --force
-
-Only one domain:
-    python backend/evaluation/cross_domain/embed_items.py --type track
-"""
 import argparse
 import os
 from pathlib import Path
@@ -75,7 +33,6 @@ CRITICAL RULES:
 
 
 def build_summary(item: dict, item_type: str) -> str:
-    """Compact metadata fed to the LLM. Trimmed to keep input tokens low."""
     bits: list[str] = []
     if item_type == "track":
         if item.get("name"):   bits.append(f"Title: {item['name']}.")
@@ -108,14 +65,12 @@ SPECS = [
 
 def main() -> None:
     p = argparse.ArgumentParser()
-    p.add_argument("--sample", type=int, default=0,
-                   help="Process only N items per domain (pilot mode). 0 = all.")
+    p.add_argument("--sample", type=int, default=0)
     p.add_argument("--type", choices=["track", "movie", "game", "all"], default="all")
-    p.add_argument("--force", action="store_true",
-                   help="Regenerate vibe and embedding even if vibe_text already present.")
+    p.add_argument("--force", action="store_true")
     args = p.parse_args()
 
-    print(f"Loading embedding model ({EMBED_MODEL}) …")
+    print(f"Loading embedding model ({EMBED_MODEL})...")
     embed_model = SentenceTransformer(EMBED_MODEL)
     llm = Anthropic(api_key=LLM_KEY)
 
@@ -171,13 +126,11 @@ def main() -> None:
 
                 title = row.get("title") or row.get("name") or f"id={row['id']}"
                 print(f"  [{i}/{len(rows)}] {title[:55]}")
-                if args.sample > 0 or i <= 2:
-                    print(f"      VIBE: {vibe}")
     finally:
         conn.close()
 
     cost = (total_in / 1_000_000) * 1.0 + (total_out / 1_000_000) * 5.0
-    print(f"\nTokens — in: {total_in:,} · out: {total_out:,} · est. cost: ${cost:.4f}")
+    print(f"\nTokens - in: {total_in:,} · out: {total_out:,} · est. cost: ${cost:.4f}")
     print("Done.")
 
 

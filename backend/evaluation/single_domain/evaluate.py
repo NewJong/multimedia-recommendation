@@ -1,46 +1,3 @@
-"""
-evaluate_recommendations.py — Експериментальна оцінка системи рекомендацій.
-
-═══════════════════════════════════════════════════════════════════════════════
-ЩО ЦЕ:
-  Створює 15 синтетичних тестових юзерів (5 на кожен з 3 доменів) і рахує
-  метрики IR для трьох алгоритмів:
-    • TF-IDF cosine     — наш content-based recommender
-    • Popularity        — baseline: топ-K за рейтингом/слухачами
-    • Random            — baseline: випадкові K айтемів
-
-  Метрики: Precision@K, Recall@K, MRR@K (mean reciprocal rank).
-
-НАВІЩО:
-  Для глави диплому "Експериментальна оцінка". Дає конкретні числа +
-  довірчі інтервали (стабільність), а не точкову оцінку.
-
-МЕТОДОЛОГІЯ:
-  Synthetic user profile testing з multi-seed повтором:
-    1. Для кожного жанру G формуємо профіль:
-       - SAMPLE_SIZE випадкових айтемів з жанром G = training set (лайки)
-       - Решта айтемів з жанром G = ground truth
-    2. Прогоняємо алгоритм, отримуємо топ-K
-    3. Рахуємо: Precision@K, Recall@K, MRR@K
-    4. Повторюємо з N різних random seeds → mean ± std deviation
-    5. Усереднюємо по 5 personas на домен, по 15 загалом
-
-МЕТРИКИ — формули і інтерпретація:
-  Precision@K = |top_K ∩ ground_truth| / K
-       → "Зі K показаних — скільки правильно?"
-  Recall@K    = |top_K ∩ ground_truth| / |ground_truth|
-       → "Зі всіх можливих правильних — скільки знайшли?"
-  MRR@K       = mean(1 / rank_of_first_hit), 0 якщо немає влучень у top_K
-       → "Як високо в списку перший влучний?" (1.0 = перший item, 0.5 = другий)
-
-ЯК ЗАПУСКАТИ:
-  cd backend
-  python evaluation/single_domain/evaluate.py
-
-ВИВІД:
-  • stdout       — таблиці per-seed, per-domain, overall з mean ± std
-  • JSON-файл    — evaluation/single_domain/results.json (для диплому)
-"""
 import os
 import sys
 import json
@@ -50,7 +7,7 @@ from collections import defaultdict
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding="utf-8")
-sys.path.insert(0, str(Path(__file__).parents[2]))   # backend/ → finds routers, database
+sys.path.insert(0, str(Path(__file__).parents[2]))
 
 from dotenv import load_dotenv
 load_dotenv(Path(__file__).parents[2] / ".env")
@@ -62,11 +19,10 @@ from database import cached_query, _cache
 from routers.recommendations import _build_recommendations
 
 
-SEEDS = [42, 100, 200, 300, 400]    
-SAMPLE_SIZE = 7                     
-                                    
-K_VALUES = [5, 10]                  
-FINAL_SEED = 42                     
+SEEDS = [42, 100, 200, 300, 400]
+SAMPLE_SIZE = 7
+K_VALUES = [5, 10]
+FINAL_SEED = 42
 
 PERSONAS = [
     ("test_rpg_fan",        "Test: RPG Fan",        "game",  "RPG"),
@@ -107,10 +63,6 @@ def get_conn():
 
 
 def create_test_users_and_likes(seed: int) -> dict:
-    """
-    (Пере)створює 15 синтетичних юзерів і їх focused likes для заданого seed.
-    Повертає profiles dict: uid → {item_type, genre, training, ground_truth}.
-    """
     rng = random.Random(seed)
     conn = get_conn()
     cur = conn.cursor()
@@ -132,8 +84,8 @@ def create_test_users_and_likes(seed: int) -> dict:
 
         if len(all_ids) < SAMPLE_SIZE + 5:
             raise RuntimeError(
-                f"Жанр '{genre}' має лише {len(all_ids)} айтемів у '{table}' — "
-                f"замало (потрібно ≥{SAMPLE_SIZE + 5})."
+                f"Genre '{genre}' has only {len(all_ids)} items in '{table}' — "
+                f"need at least {SAMPLE_SIZE + 5}."
             )
 
         rng.shuffle(all_ids)
@@ -161,24 +113,18 @@ def create_test_users_and_likes(seed: int) -> dict:
 
 
 def precision_at_k(rec_ids: list, ground_truth: set, k: int) -> float:
-    """|top_K ∩ GT| / K"""
     top = rec_ids[:k]
     hits = sum(1 for x in top if x in ground_truth)
     return hits / k if k > 0 else 0.0
 
 
 def recall_at_k(rec_ids: list, ground_truth: set, k: int) -> float:
-    """|top_K ∩ GT| / |GT|"""
     top = rec_ids[:k]
     hits = sum(1 for x in top if x in ground_truth)
     return hits / len(ground_truth) if ground_truth else 0.0
 
 
 def mrr_at_k(rec_ids: list, ground_truth: set, k: int) -> float:
-    """
-    Reciprocal Rank @K: 1/rank першого влучного у top_K, 0 якщо немає влучень.
-    Високий MRR = релевантне на ранніх позиціях.
-    """
     for i, item_id in enumerate(rec_ids[:k]):
         if item_id in ground_truth:
             return 1.0 / (i + 1)
@@ -208,7 +154,6 @@ def rec_random(items: list, training_set: set, seed: int) -> list[int]:
 
 
 def evaluate_once(profiles: dict, seed: int) -> list[dict]:
-    """Один прогін: 15 personas × 3 algo × (P@K, R@K, MRR@K)."""
     _cache.clear()
     items_by_type = {
         it: cached_query(cfg["table"], f"SELECT * FROM {cfg['table']}")
@@ -249,12 +194,6 @@ def mean_std(values: list[float]) -> tuple[float, float]:
 
 
 def aggregate_overall(all_runs: list[list[dict]]) -> dict:
-    """
-    На вхід: список з SEEDS прогонів, кожен — list[15 рядків].
-    На виході: для кожного algo × metric → (mean, std) обчислені:
-        - спочатку усереднюємо по 15 personas у межах одного seed (= overall score for that run)
-        - потім mean ± std по SEEDS
-    """
     out = {}
     for algo, _ in ALGOS:
         out[algo] = {}
@@ -271,7 +210,6 @@ def aggregate_overall(all_runs: list[list[dict]]) -> dict:
 
 
 def aggregate_per_domain(all_runs: list[list[dict]]) -> dict:
-    """Mean ± std по seeds, для кожного домену окремо."""
     out = defaultdict(dict)
     for domain in ("game", "movie", "track"):
         for algo, _ in ALGOS:
@@ -293,19 +231,18 @@ DOMAIN_TITLE = {"game": "GAMES", "movie": "MOVIES", "track": "TRACKS"}
 
 
 def fmt(m, s):
-    """Format mean ± std with proper alignment."""
     return f"{m:.3f} ± {s:.3f}"
 
 
 def print_report(overall: dict, per_domain: dict, seeds: list[int], sample_size: int):
-    sep = "═" * 92
+    sep = "=" * 92
     print(f"\n{sep}")
     print(f"  EXPERIMENT — mean ± std deviation across {len(seeds)} seeds")
     print(f"  Personas: {len(PERSONAS)}  |  Training size: {sample_size}  |  Seeds: {seeds}")
     print(sep)
 
     for domain in ("game", "movie", "track"):
-        print(f"\n── {DOMAIN_TITLE[domain]} @10 " + "─" * (80 - len(DOMAIN_TITLE[domain])))
+        print(f"\n-- {DOMAIN_TITLE[domain]} @10 " + "-" * (80 - len(DOMAIN_TITLE[domain])))
         print(f"  {'Algorithm':20s}  {'Precision@10':>15}  {'Recall@10':>15}  {'MRR@10':>15}")
         print(f"  {'-'*20}  {'-'*15}  {'-'*15}  {'-'*15}")
         for algo, label in ALGOS:
@@ -316,7 +253,7 @@ def print_report(overall: dict, per_domain: dict, seeds: list[int], sample_size:
                 f"{fmt(d['r@10']['mean'], d['r@10']['std']):>15}  "
                 f"{fmt(d['mrr@10']['mean'], d['mrr@10']['std']):>15}"
             )
-    print(f"\n── OVERALL (averaged over 15 personas × {len(seeds)} seeds) " + "─" * 30)
+    print(f"\n-- OVERALL (averaged over 15 personas x {len(seeds)} seeds) " + "-" * 30)
     print(f"  {'Algorithm':20s}  {'P@5':>13}  {'R@5':>13}  {'MRR@5':>13}  {'P@10':>13}  {'R@10':>13}  {'MRR@10':>13}")
     print(f"  {'-'*20}  {'-'*13}  {'-'*13}  {'-'*13}  {'-'*13}  {'-'*13}  {'-'*13}")
     for algo, label in ALGOS:
@@ -331,7 +268,7 @@ def print_report(overall: dict, per_domain: dict, seeds: list[int], sample_size:
             f"{fmt(d['mrr@10']['mean'], d['mrr@10']['std']):>13}"
         )
 
-    print(f"\n── LIFT @10 (наш TF-IDF / baseline)" + " " + "─" * 50)
+    print(f"\n-- LIFT @10 (TF-IDF / baseline) " + "-" * 50)
     tfidf = overall["tfidf"]
     pop   = overall["pop"]
     rand  = overall["rand"]
@@ -339,7 +276,7 @@ def print_report(overall: dict, per_domain: dict, seeds: list[int], sample_size:
         tf = tfidf[metric]["mean"]
         pop_lift  = tf / pop[metric]["mean"]  if pop[metric]["mean"]  > 0 else float("inf")
         rand_lift = tf / rand[metric]["mean"] if rand[metric]["mean"] > 0 else float("inf")
-        print(f"  {metric.upper():8s}  TF-IDF = {tf:.3f}  |  vs Popularity: {pop_lift:5.2f}×  |  vs Random: {rand_lift:5.2f}×")
+        print(f"  {metric.upper():8s}  TF-IDF = {tf:.3f}  |  vs Popularity: {pop_lift:5.2f}x  |  vs Random: {rand_lift:5.2f}x")
     print()
 
 
@@ -352,12 +289,6 @@ def save_json(all_runs: list[list[dict]], overall: dict, per_domain: dict,
             "k_values": K_VALUES,
             "seeds": seeds,
             "n_runs": len(seeds),
-            "methodology": (
-                "Multi-seed synthetic user profile testing. Per run we sample "
-                f"{sample_size} likes from a target genre for each of {len(PERSONAS)} synthetic users, "
-                "measure Precision@K, Recall@K, MRR@K against ground truth (remaining items of that genre), "
-                f"then aggregate mean ± std across {len(seeds)} independent random seeds."
-            ),
         },
         "overall": overall,
         "per_domain": per_domain,
@@ -371,19 +302,19 @@ def save_json(all_runs: list[list[dict]], overall: dict, per_domain: dict,
 
 
 def main():
-    print(f"Прогоняємо evaluation з {len(SEEDS)} різними seeds, SAMPLE_SIZE={SAMPLE_SIZE}...\n")
+    print(f"Running evaluation with {len(SEEDS)} seeds, SAMPLE_SIZE={SAMPLE_SIZE}...\n")
 
     all_runs = []
     for seed in SEEDS:
-        print(f"  Seed {seed} — створюємо юзерів і evaluat'имо...")
+        print(f"  Seed {seed} — creating users and evaluating...")
         profiles = create_test_users_and_likes(seed)
         run_results = evaluate_once(profiles, seed)
         all_runs.append(run_results)
         avg_tf = sum(r["tfidf_p@10"] for r in run_results) / len(run_results)
-        print(f"    → TF-IDF Precision@10 = {avg_tf:.3f}")
+        print(f"    -> TF-IDF Precision@10 = {avg_tf:.3f}")
 
     if SEEDS[-1] != FINAL_SEED:
-        print(f"\n  Відновлюємо DB-стан з seed={FINAL_SEED}...")
+        print(f"\n  Restoring DB state with seed={FINAL_SEED}...")
         create_test_users_and_likes(FINAL_SEED)
 
     overall    = aggregate_overall(all_runs)
@@ -393,7 +324,7 @@ def main():
 
     out_path = Path(__file__).parent / "results.json"
     save_json(all_runs, overall, per_domain, out_path, SEEDS, SAMPLE_SIZE)
-    print(f"✓ Результати (всі {len(SEEDS)} прогонів + agg) → {out_path}")
+    print(f"Results saved to {out_path}")
 
 
 if __name__ == "__main__":

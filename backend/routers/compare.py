@@ -67,19 +67,6 @@ def _distinctive_picks(
     my_liked: set[int], their_liked: set[int], items: list,
     tag_fields: list, min_df: int = 1
 ) -> list[tuple[dict, int, list[str]]]:
-    """
-    Items from their library (minus mine) that capture what's DISTINCTIVE about
-    their taste compared to mine. Score = how much they prefer this item's tags
-    over how much I do (their_vec − my_vec, clipped at 0).
-
-    This is the opposite of For You: For You finds what matches MY taste; this
-    finds what they bring that I don't already have. If I love rock and they
-    love jazz, jazz tracks bubble to the top here — even though they'd never
-    appear in my For You.
-
-    Returns up to 3 (item, score_0_100, top_diff_tags) tuples, with the highest
-    distinctive score normalized to 100.
-    """
     doc_freq: dict[str, int] = {}
     for item in items:
         seen: set[str] = set()

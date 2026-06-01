@@ -1,6 +1,3 @@
-"""Find movies with strong cross-domain scores in BOTH music and games.
-Used to pick a good demo example for the diploma screenshots — Cross-Echoes
-section looks impressive when both rows have visibly high match percentages."""
 import os, sys
 from pathlib import Path
 sys.stdout.reconfigure(encoding="utf-8")
@@ -18,7 +15,6 @@ def get_conn():
 
 
 def top1_score(cur, anchor: dict, anchor_type: str, other_type: str) -> tuple[int, str]:
-    """Returns (calibrated_score_percent, top_item_title) for the best cross-domain match."""
     other_table = TABLE[other_type]
     cur.execute(f"""
         SELECT *, 1 - (embedding <=> %s::vector) AS _sem

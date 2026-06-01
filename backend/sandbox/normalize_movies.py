@@ -1,10 +1,3 @@
-"""
-Cleans keywords for all movies already in DB:
-  - Removes pure plot-device keywords with no taste signal
-  - Merges obvious synonyms
-  - Deduplicates
-Run: python normalize_movies.py
-"""
 import sys, psycopg2, psycopg2.extras
 from dotenv import load_dotenv
 from pathlib import Path
