@@ -57,7 +57,6 @@ export default function MovieDetail({ id }: { id: number }) {
         @keyframes rorb3 { 0%,100% { transform:translate(0,0) scale(1); } 50% { transform:translate(-14%,-9%) scale(1.12); } }
       `}</style>
       <div className="max-w-5xl mx-auto px-6 pt-8 pb-16">
-        {/* Back */}
         <a href="/movies" className="inline-flex items-center gap-2 text-zinc-500 hover:text-zinc-200 text-sm mb-8 transition-colors">
           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -65,7 +64,6 @@ export default function MovieDetail({ id }: { id: number }) {
           Movies
         </a>
 
-        {/* Poster + info */}
         <div className="flex flex-col sm:flex-row gap-8 mb-8">
           {movie.poster_url
             ? <img src={movie.poster_url} alt={movie.title} className="w-44 rounded-xl object-cover shadow-2xl shadow-black/70 flex-shrink-0 self-start" />
@@ -77,7 +75,6 @@ export default function MovieDetail({ id }: { id: number }) {
             <h1 className="text-4xl font-bold text-white leading-tight mb-1">{movie.title}</h1>
             {movie.tagline && <p className="text-zinc-400 italic mb-4">"{movie.tagline}"</p>}
 
-            {/* Meta row */}
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-zinc-400 mb-5">
               {movie.release_year > 0 && <span>{movie.release_year}</span>}
               {fmtRuntime(movie.runtime) && <span>{fmtRuntime(movie.runtime)}</span>}
@@ -85,7 +82,6 @@ export default function MovieDetail({ id }: { id: number }) {
               {movie.status && movie.status !== 'Released' && <span className="text-yellow-500">{movie.status}</span>}
             </div>
 
-            {/* Ratings */}
             <div className="flex flex-wrap items-center gap-5 mb-6">
               {movie.rating > 0 && (
                 <div>
@@ -103,7 +99,6 @@ export default function MovieDetail({ id }: { id: number }) {
               <FriendsLiked itemType="movie" itemId={movie.id} ringColor="ring-rose-500/50" />
             </div>
 
-            {/* Crew */}
             {movie.director && (
               <div className="mb-2">
                 <span className="text-zinc-500 text-xs uppercase tracking-wider">Director </span>
@@ -117,7 +112,6 @@ export default function MovieDetail({ id }: { id: number }) {
               </div>
             )}
 
-            {/* Collection */}
             {movie.collection && (
               <div className="mb-4">
                 <span className="text-zinc-500 text-xs uppercase tracking-wider">Collection </span>
@@ -127,7 +121,6 @@ export default function MovieDetail({ id }: { id: number }) {
           </div>
         </div>
 
-        {/* Overview */}
         {movie.overview && (
           <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 mt-8">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Overview</p>
@@ -135,7 +128,6 @@ export default function MovieDetail({ id }: { id: number }) {
           </div>
         )}
 
-        {/* Genres */}
         {movie.genres?.length > 0 && (
           <div className="mt-6">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Genres</p>
@@ -147,7 +139,6 @@ export default function MovieDetail({ id }: { id: number }) {
           </div>
         )}
 
-        {/* Keywords */}
         {movie.keywords?.length > 0 && (
           <div className="mt-4">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Keywords</p>
@@ -159,7 +150,6 @@ export default function MovieDetail({ id }: { id: number }) {
           </div>
         )}
 
-        {/* Budget / revenue */}
         {(fmtMoney(movie.budget) || fmtMoney(movie.revenue)) && (
           <div className="flex flex-wrap gap-8 mt-8 border-t border-zinc-800 pt-6">
             {fmtMoney(movie.budget) && (

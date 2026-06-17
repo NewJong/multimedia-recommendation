@@ -117,7 +117,7 @@ export default function GamesList() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    if (cachedGames !== null) return;  // already seeded from cache
+    if (cachedGames !== null) return;  
     cachedFetch<Game[]>('catalog:games', `${API_BASE}/games`)
       .then(setGames)
       .catch(() => setError('Backend offline — run: uvicorn main:app --reload'))
@@ -129,7 +129,6 @@ export default function GamesList() {
     [recs]
   );
 
-  // Reset pagination when tab, search or genre filter changes
   useEffect(() => { setVisibleCount(PAGE_SIZE); }, [sortTab, search, selectedGenres]);
 
   const allGenres = useMemo(() => {

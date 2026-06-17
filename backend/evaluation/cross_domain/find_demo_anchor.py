@@ -47,7 +47,6 @@ def main():
             for m in movies:
                 track_score, track_title = top1_score(cur, m, "movie", "track")
                 game_score,  game_title  = top1_score(cur, m, "movie", "game")
-                # Score the candidate by MIN of two — best demo means BOTH look good.
                 min_score = min(track_score, game_score)
                 results.append({
                     "title":       m["title"],

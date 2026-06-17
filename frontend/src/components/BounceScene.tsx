@@ -3,8 +3,8 @@ import { API_BASE } from '../lib/api';
 import { cachedFetch } from '../lib/cache';
 import { thumbUrl } from '../lib/format';
 
-const CW = 158;   // card width
-const CH = 62;    // card height
+const CW = 158;
+const CH = 62;
 const SPEED = 0.85;
 
 type Domain = 'music' | 'movie' | 'game';
@@ -199,7 +199,7 @@ export default function BounceScene() {
           <div className="text-center select-none">
             <h1 className="text-6xl font-bold text-white tracking-tight">TIOKhor</h1>
             <p className="text-zinc-500 text-sm mt-2">
-              Discover what to watch, play & listen to — all in one place.
+              Discover what to watch, play & listen to – all in one place.
             </p>
           </div>
 

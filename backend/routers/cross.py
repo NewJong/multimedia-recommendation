@@ -30,6 +30,8 @@ POOL_MULT        = 4
 DISPLAY_BASELINE = 0.50
 DISPLAY_SCALE    = 2.0
 
+_cross_cache: dict = {}
+
 
 def _calibrate(raw: float) -> int:
     return round(max(0.0, min(1.0, (raw - DISPLAY_BASELINE) * DISPLAY_SCALE)) * 100)
@@ -316,6 +318,10 @@ def cross_recommendations(anchor_type: str, anchor_id: int, k: int = Query(5, ge
     if anchor_type not in TABLE:
         raise HTTPException(status_code=400, detail="Invalid anchor_type")
 
+    cache_key = (anchor_type, anchor_id, k)
+    if cache_key in _cross_cache:
+        return _cross_cache[cache_key]
+
     anchor_table = TABLE[anchor_type]
     other_types = [t for t in TABLE if t != anchor_type]
 
@@ -363,4 +369,5 @@ def cross_recommendations(anchor_type: str, anchor_id: int, k: int = Query(5, ge
     finally:
         conn.close()
 
+    _cross_cache[cache_key] = result
     return result

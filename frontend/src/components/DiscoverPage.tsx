@@ -35,12 +35,6 @@ function likeSubtitle(it: Like, type: ItemType): string {
 }
 
 
-/**
- * Discover: pick any item you've liked, see how it echoes in the other two
- * domains. The page reuses CrossEchoes for the result rendering, so the layout
- * is identical to the detail pages — predictability over novelty. The only
- * new piece is the anchor picker (dropdown with thumbnails, searchable).
- */
 export default function DiscoverPage() {
   const { user, uid, loading: authLoading } = useAuth();
   const [likes, setLikes]             = useState<LikesResponse>({ tracks: [], movies: [], games: [] });
@@ -54,7 +48,6 @@ export default function DiscoverPage() {
       .then(r => r.json())
       .then((d: LikesResponse) => {
         setLikes(d);
-        // Pick first non-empty domain + first item as default.
         const first: ItemType | null =
           d.movies?.length ? 'movie' : d.tracks?.length ? 'track' : d.games?.length ? 'game' : null;
         if (first) {
@@ -66,11 +59,9 @@ export default function DiscoverPage() {
       .finally(() => setLikesLoaded(true));
   }, [uid]);
 
-  // Likes available in the currently active tab.
   const currentLikes = likes[TYPE_META[tab].plural];
   const anchor       = currentLikes.find(a => a.id === anchorId) ?? null;
 
-  // When tab changes, ensure the anchor belongs to the new tab.
   useEffect(() => {
     if (currentLikes.length === 0) { setAnchorId(null); return; }
     if (!currentLikes.some(a => a.id === anchorId)) {
@@ -81,7 +72,6 @@ export default function DiscoverPage() {
   function pickRandom() {
     if (currentLikes.length === 0) return;
     let pick = currentLikes[Math.floor(Math.random() * currentLikes.length)];
-    // Avoid landing on the same one twice in a row when possible.
     if (currentLikes.length > 1 && pick.id === anchorId) {
       pick = currentLikes[(currentLikes.findIndex(a => a.id === anchorId) + 1) % currentLikes.length];
     }
@@ -97,7 +87,7 @@ export default function DiscoverPage() {
       <p className="text-6xl mb-4">✦</p>
       <h1 className="text-2xl font-bold text-white mb-2">Cross-domain Discovery</h1>
       <p className="text-zinc-500 mb-8 leading-relaxed">
-        Pick any of your likes — see the closest tracks, movies and games from other domains by vibe.
+        Pick any of your likes – see the closest tracks, movies and games from other domains by vibe.
       </p>
       <button onClick={() => signInWithPopup(auth, googleProvider)}
         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-zinc-700 hover:border-zinc-500 text-sm text-zinc-200 transition-all">
@@ -113,7 +103,7 @@ export default function DiscoverPage() {
           <span className="bg-gradient-to-r from-cyan-300 via-violet-300 to-rose-300 bg-clip-text text-transparent">Cross-domain Discovery</span>
         </h1>
         <p className="text-zinc-500 text-sm mt-1">
-          Pick anything you've liked — see the closest items from the other two domains, ranked by semantic similarity.
+          Pick anything you've liked – see the closest items from the other two domains, ranked by semantic similarity.
         </p>
       </div>
 
@@ -127,7 +117,6 @@ export default function DiscoverPage() {
 
       {likesLoaded && totalLikes > 0 && (
         <>
-          {/* Domain tabs — only enabled where the user has at least one like. */}
           <div className="flex items-center gap-1.5 mb-4">
             {(['movie', 'track', 'game'] as ItemType[]).map(t => {
               const meta  = TYPE_META[t];
@@ -143,7 +132,6 @@ export default function DiscoverPage() {
             })}
           </div>
 
-          {/* Anchor picker + selected anchor card */}
           {currentLikes.length === 0 ? (
             <p className="text-zinc-600 text-sm py-8">Nothing liked in this domain yet.</p>
           ) : (
@@ -156,7 +144,6 @@ export default function DiscoverPage() {
             />
           )}
 
-          {/* Reuse the same cross-domain layout as detail pages. */}
           {anchor && anchorId != null && (
             <CrossEchoes anchorType={tab} anchorId={anchorId} />
           )}
@@ -167,11 +154,6 @@ export default function DiscoverPage() {
 }
 
 
-/**
- * Custom searchable combobox with thumbnails. Native <select> can't show
- * posters, and a thumb grid would be massive for users with 50+ likes — this
- * compact dropdown scales to any library size and gives the demo a polished feel.
- */
 function AnchorPicker({ type, likes, anchor, onPick, onRandom }: {
   type:     ItemType;
   likes:    Like[];
@@ -185,7 +167,6 @@ function AnchorPicker({ type, likes, anchor, onPick, onRandom }: {
   const inputRef            = useRef<HTMLInputElement | null>(null);
   const meta = TYPE_META[type];
 
-  // Close on outside click.
   useEffect(() => {
     if (!open) return;
     function handle(e: MouseEvent) {
@@ -195,7 +176,6 @@ function AnchorPicker({ type, likes, anchor, onPick, onRandom }: {
     return () => document.removeEventListener('mousedown', handle);
   }, [open]);
 
-  // Auto-focus the search box when the dropdown opens.
   useEffect(() => { if (open) inputRef.current?.focus(); }, [open]);
 
   const filtered = useMemo(() => {
@@ -207,7 +187,6 @@ function AnchorPicker({ type, likes, anchor, onPick, onRandom }: {
   return (
     <div ref={wrapRef} className="relative mb-6">
       <div className="flex items-stretch gap-2">
-        {/* The big anchor card itself is the dropdown trigger. */}
         <button onClick={() => setOpen(v => !v)}
           className={`flex-1 flex items-center gap-3 p-3 rounded-xl bg-zinc-900/60 border ${meta.chip} hover:bg-zinc-900 transition-colors text-left`}>
           {anchor ? (
@@ -235,7 +214,6 @@ function AnchorPicker({ type, likes, anchor, onPick, onRandom }: {
         </button>
       </div>
 
-      {/* Dropdown */}
       {open && (
         <div className="absolute z-30 top-full left-0 right-0 mt-2 rounded-xl bg-zinc-950 border border-zinc-800 shadow-2xl shadow-black/60 overflow-hidden">
           <div className="p-2 border-b border-zinc-800">

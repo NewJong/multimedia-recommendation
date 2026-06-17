@@ -96,10 +96,8 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
   return (
     <div className="max-w-4xl mx-auto px-6 pt-8 pb-16">
 
-      {/* Profile card — info + comparison in one block */}
       <div className="rounded-2xl border border-zinc-800 bg-zinc-900/30 mb-8 overflow-hidden">
 
-        {/* Top: avatar, name, socials, friend button */}
         <div className="flex items-center gap-5 px-6 py-5">
           <Avatar u={user} size="lg" />
           <div className="min-w-0 flex-1">
@@ -120,12 +118,10 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
           </div>
         </div>
 
-        {/* Bottom: AI comparison — only when viewing someone else's profile */}
         {myUid && myUid !== uid && (
           <>
             <div className="border-t border-zinc-800" />
 
-            {/* Placeholder */}
             {!compare && !compareLoading && !compareError && (
               <button onClick={loadComparison}
                 className="w-full group px-6 py-4 text-left hover:bg-zinc-800/40 transition-colors">
@@ -146,7 +142,6 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
               </button>
             )}
 
-            {/* Loading */}
             {compareLoading && (
               <div className="px-6 py-4 animate-pulse flex items-center gap-4">
                 <span className="text-xs text-zinc-600">Analysing tastes…</span>
@@ -157,7 +152,6 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
               </div>
             )}
 
-            {/* Error */}
             {compareError && !compareLoading && (
               <div className="px-6 py-4 flex items-center gap-3">
                 <span className="text-xs text-zinc-500">Couldn't load comparison.</span>
@@ -165,7 +159,6 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
               </div>
             )}
 
-            {/* Result */}
             {compare && (
               <div className="px-6 py-4 space-y-2.5">
                 <div className="flex items-center gap-3">
@@ -182,7 +175,6 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                 </div>
                 <p className="text-sm text-zinc-300 leading-relaxed">{compare.insight}</p>
 
-                {/* Both liked — three columns by domain */}
                 {(compare.common.games.length + compare.common.movies.length + compare.common.tracks.length) > 0 && (
                   <div className="flex flex-col sm:flex-row gap-x-4 gap-y-3 pt-1">
                     {compare.common.tracks.length > 0 && (
@@ -233,7 +225,6 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                   </div>
                 )}
 
-                {/* Taste tags — your vibe vs their vibe */}
                 {(compare.tags1.length > 0 || compare.tags2.length > 0) && (
                   <div className="grid grid-cols-2 gap-3 pt-2 border-t border-zinc-800">
                     <div>
@@ -255,7 +246,6 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
                   </div>
                 )}
 
-                {/* Picks from their library — distinctive items that broaden taste */}
                 {(compare.picks.games.length + compare.picks.movies.length + compare.picks.tracks.length) > 0 && (
                   <div className="pt-2 border-t border-zinc-800">
                     <p className="text-[10px] uppercase tracking-wider text-zinc-600 mb-2">✦ What {compare.name2} brings — broaden your taste</p>
@@ -317,7 +307,6 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
         )}
       </div>
 
-      {/* Tabs */}
       <div className="flex justify-center gap-2 mb-8">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
@@ -331,7 +320,6 @@ export default function PublicProfilePage({ uid }: { uid: string }) {
         ))}
       </div>
 
-      {/* Grid */}
       {total === 0 && <p className="text-zinc-600 text-sm text-center py-16">No liked items yet</p>}
 
       {tab === 'music' && likes.tracks.length > 0 && (

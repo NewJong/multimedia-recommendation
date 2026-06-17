@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { API_BASE } from '../lib/api';
 import { thumbUrl } from '../lib/format';
+import { cacheGet, cacheSet } from '../lib/cache';
 
 type ItemType = 'track' | 'movie' | 'game';
 
@@ -43,11 +44,6 @@ function itemSubtitle(it: CrossItem, type: ItemType): string {
 }
 
 
-/**
- * Horizontal scroller with arrows flanking the cards. Native scrollbar is
- * hidden (cross-browser) — navigation is via the arrow buttons and trackpad/
- * touch-swipe. Buttons dim when there's nothing more to reveal in that direction.
- */
 function HorizontalRow({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [atStart, setAtStart] = useState(true);
@@ -73,8 +69,6 @@ function HorizontalRow({ children }: { children: React.ReactNode }) {
   function nudge(dir: 1 | -1) {
     const el = ref.current;
     if (!el) return;
-    // Scroll by ~80% of the viewport so a click reveals a fresh page of cards
-    // without losing context on the trailing edge.
     el.scrollBy({ left: dir * el.clientWidth * 0.82, behavior: 'smooth' });
   }
 
@@ -88,7 +82,6 @@ function HorizontalRow({ children }: { children: React.ReactNode }) {
         {children}
       </div>
 
-      {/* Edge fades hint at hidden content past the visible cards. */}
       <div className={`pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-black/70 via-black/30 to-transparent transition-opacity duration-300 ${atStart ? 'opacity-0' : 'opacity-100'}`} />
       <div className={`pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-black/70 via-black/30 to-transparent transition-opacity duration-300 ${atEnd ? 'opacity-0' : 'opacity-100'}`} />
 
@@ -103,27 +96,27 @@ function HorizontalRow({ children }: { children: React.ReactNode }) {
 }
 
 
-/**
- * Bottom-of-page section on every detail page (movie / track / game). Pulls
- * top-K semantic matches from the two other domains via the existing /cross
- * endpoint — no LLM call. Each card has a "✨ Why?" button that lazily fetches
- * a one-sentence explanation from /cross/explain (cached in DB). This is the
- * cross-domain feature in its discovery form: it works for any catalog item,
- * even ones the user hasn't liked.
- */
 export default function CrossEchoes({ anchorType, anchorId }: { anchorType: ItemType; anchorId: number }) {
   const [data, setData]       = useState<CrossResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState<string | null>(null);
 
-  // explanationByPair: key = "<rec_type>-<rec_id>", value = string (sentence) or "loading"
   const [explanations, setExplanations] = useState<Record<string, string>>({});
 
   useEffect(() => {
-    setLoading(true);
+    const cacheKey = `cross:${anchorType}:${anchorId}:15`;
     setError(null);
-    setData(null);
     setExplanations({});
+
+    const cached = cacheGet<CrossResponse>(cacheKey);
+    if (cached) {
+      setData(cached);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    setData(null);
 
     fetch(`${API_BASE}/cross/${anchorType}/${anchorId}?k=15`)
       .then(async r => {
@@ -133,14 +126,14 @@ export default function CrossEchoes({ anchorType, anchorId }: { anchorType: Item
         }
         return r.json() as Promise<CrossResponse>;
       })
-      .then(setData)
+      .then(d => { setData(d); cacheSet(cacheKey, d); })
       .catch(e => setError(e.message))
       .finally(() => setLoading(false));
   }, [anchorType, anchorId]);
 
   async function fetchExplanation(recType: ItemType, recId: number, score: number) {
     const key = `${recType}-${recId}`;
-    if (explanations[key]) return;   // already loaded or in-flight
+    if (explanations[key]) return;
 
     setExplanations(prev => ({ ...prev, [key]: 'loading' }));
     try {
@@ -158,7 +151,6 @@ export default function CrossEchoes({ anchorType, anchorId }: { anchorType: Item
     }
   }
 
-  // Hide the whole section gracefully if the anchor lacks embedding — no point cluttering the page.
   if (error && error.toLowerCase().includes('embedding')) return null;
   if (error) return (
     <div className="mt-10 bg-red-950/20 border border-red-900/40 rounded-2xl p-4 text-red-400/80 text-sm">
@@ -228,7 +220,6 @@ export default function CrossEchoes({ anchorType, anchorId }: { anchorType: Item
                     return (
                       <div key={it.id}
                         className={`group snap-start flex-shrink-0 w-[180px] rounded-xl overflow-hidden bg-zinc-900/60 border ${meta.cardBorder} ${meta.cardHover} transition-colors flex flex-col`}>
-                        {/* Poster — clickable, navigates to detail page */}
                         <a href={`${meta.route}/${it.id}`} className="block relative">
                           <div className="aspect-square bg-zinc-900 overflow-hidden">
                             {img
@@ -242,7 +233,6 @@ export default function CrossEchoes({ anchorType, anchorId }: { anchorType: Item
                           </div>
                         </a>
 
-                        {/* Body */}
                         <div className="p-2.5 flex-1 flex flex-col">
                           <a href={`${meta.route}/${it.id}`}
                             className={`text-sm font-semibold leading-tight truncate ${meta.accent} hover:text-white transition-colors`}>{itemTitle(it)}</a>
@@ -256,7 +246,6 @@ export default function CrossEchoes({ anchorType, anchorId }: { anchorType: Item
                             </div>
                           )}
 
-                          {/* AI explanation block */}
                           <div className="mt-auto pt-2.5">
                             {hasExpl ? (
                               <p className="text-zinc-400 text-[11px] italic leading-snug">"{expl}"</p>

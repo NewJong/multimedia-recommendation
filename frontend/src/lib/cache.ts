@@ -1,9 +1,4 @@
-/**
- * Lightweight sessionStorage cache with TTL.
- * Survives in-tab navigation (Astro ClientRouter) but clears when the tab closes,
- * which is what we want — fresh data per session, but no refetch on every page change.
- */
-const TTL_MS = 5 * 60 * 1000;  // 5 minutes — enough for a session of browsing
+const TTL_MS = 5 * 60 * 1000;
 
 interface Entry<T> { v: T; t: number }
 
@@ -25,7 +20,6 @@ export function cacheSet<T>(key: string, value: T): void {
   try {
     sessionStorage.setItem(key, JSON.stringify({ v: value, t: Date.now() }));
   } catch {
-    // Storage quota exceeded or disabled — silently fall through, will refetch next time.
   }
 }
 
@@ -38,10 +32,6 @@ export function cacheClear(prefix?: string): void {
   }
 }
 
-/**
- * Fetch with caching: returns cached value if present, otherwise fetches and stores.
- * The cache key uniquely identifies the request.
- */
 export async function cachedFetch<T>(key: string, url: string): Promise<T> {
   const hit = cacheGet<T>(key);
   if (hit !== null) return hit;

@@ -104,7 +104,7 @@ export default function TracksList() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    if (cachedTracks !== null) return;  // already seeded from cache
+    if (cachedTracks !== null) return;  
     cachedFetch<Track[]>('catalog:tracks', `${API_BASE}/tracks`)
       .then(setTracks)
       .catch(() => setError('Backend offline — run: uvicorn main:app --reload'))

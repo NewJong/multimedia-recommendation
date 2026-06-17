@@ -93,7 +93,7 @@ export default function MoviesList() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
 
   useEffect(() => {
-    if (cachedMovies !== null) return;  // already seeded from cache
+    if (cachedMovies !== null) return;  
     cachedFetch<Movie[]>('catalog:movies', `${API_BASE}/movies`)
       .then(setMovies)
       .catch(() => setError('Backend offline — run: uvicorn main:app --reload'))

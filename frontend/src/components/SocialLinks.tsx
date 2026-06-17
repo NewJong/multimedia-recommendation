@@ -75,7 +75,7 @@ const PLATFORMS: Platform[] = [
     label: 'Discord',
     color: '#5865F2',
     hoverBg: 'hover:bg-[#5865F2]/15',
-    getUrl: () => null, // no universal profile URL
+    getUrl: () => null, 
     getDisplay: v => v,
     placeholder: 'username',
     icon: (
@@ -290,7 +290,6 @@ export function OwnSocialRow({ uid, socials, onUpdate }: OwnSocialRowProps) {
   );
 }
 
-// ── Visitor social row (read-only, clickable) ───────────────────────────────
 
 interface VisitorSocialRowProps {
   socials: Socials;
@@ -326,7 +325,6 @@ export function VisitorSocialRow({ socials }: VisitorSocialRowProps) {
           );
         }
 
-        // Discord — copy to clipboard
         return (
           <button key={p.key}
             onClick={() => copy(val, p.key)}

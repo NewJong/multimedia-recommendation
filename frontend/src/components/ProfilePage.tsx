@@ -181,7 +181,6 @@ export default function ProfilePage() {
   return (
     <div className="max-w-4xl mx-auto px-6 pt-8 pb-16">
 
-      {/* Header */}
       <div className="flex items-start gap-5 mb-8">
         {user.photoURL
           ? <img src={user.photoURL} alt="" referrerPolicy="no-referrer" className="w-20 h-20 rounded-full ring-2 ring-zinc-700 flex-shrink-0" />
@@ -195,7 +194,6 @@ export default function ProfilePage() {
             <p className="text-zinc-600 text-xs mt-2">{total} liked item{total !== 1 ? 's' : ''}</p>
           )}
         </div>
-        {/* Account actions */}
         <div className="flex flex-col items-end gap-2 flex-shrink-0">
           <button
             onClick={async () => {
@@ -224,7 +222,6 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex justify-center gap-2 mb-8">
         {TABS.map(t => (
           <button key={t.key} onClick={() => setTab(t.key)}
@@ -242,7 +239,6 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* Skeleton */}
       {likesLoading && (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {[1,2,3,4,5,6,7,8].map(i => (
@@ -255,7 +251,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Empty state */}
       {!likesLoading && total === 0 && (
         <div className="text-center py-20">
           <p className="text-zinc-700 text-5xl mb-4">♡</p>
@@ -268,7 +263,6 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* Grids */}
       {!likesLoading && tab === 'music' && (
         counts.music === 0
           ? <p className="text-zinc-600 text-sm py-12 text-center">No liked tracks yet</p>

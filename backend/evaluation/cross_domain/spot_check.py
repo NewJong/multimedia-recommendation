@@ -78,7 +78,6 @@ def main():
                 print(f"  vibe_text: {(anchor.get('vibe_text') or '')[:200]}…")
                 print(f"{'═'*92}")
 
-                # Collect pairs for AI explanation
                 pairs_for_llm = []
                 results = []
 
@@ -96,7 +95,6 @@ def main():
                             cal,
                         ))
 
-                # Generate explanations for ALL of this anchor's pairs at once
                 print(f"\n  AI EXPLANATIONS (Claude Haiku, batched):")
                 expls = _generate_explanations(cur, pairs_for_llm)
                 for other, item, cal, shared in results:

@@ -140,7 +140,6 @@ export default function SearchResults() {
   return (
     <div className="max-w-5xl mx-auto px-6 py-10">
 
-      {/* Search bar */}
       <div className="flex items-center gap-3 mb-8">
         <a href="/" className="text-zinc-600 hover:text-zinc-300 transition-colors flex-shrink-0">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -167,7 +166,6 @@ export default function SearchResults() {
             autoFocus
           />
 
-          {/* AI toggle */}
           <button
             onClick={() => { setAiMode(v => !v); setResults(null); }}
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl mr-1 text-xs font-semibold transition-all flex-shrink-0 ${
@@ -194,7 +192,6 @@ export default function SearchResults() {
         </div>
       </div>
 
-      {/* AI explanation */}
       {results?.explanation && (
         <div className="mb-6 flex items-start gap-3 bg-violet-500/8 border border-violet-500/20 rounded-xl p-4">
           <svg className="w-4 h-4 text-violet-400 flex-shrink-0 mt-0.5" viewBox="0 0 24 24" fill="currentColor">
@@ -204,12 +201,10 @@ export default function SearchResults() {
         </div>
       )}
 
-      {/* AI error */}
       {aiError && (
         <div className="mb-6 bg-red-950/30 border border-red-800/50 rounded-xl p-4 text-red-400 text-sm">{aiError}</div>
       )}
 
-      {/* Loading */}
       {loading && (
         <div className="flex flex-col gap-4">
           {[1,2,3].map(s => (
@@ -223,7 +218,6 @@ export default function SearchResults() {
         </div>
       )}
 
-      {/* No results */}
       {!loading && results && total === 0 && (
         <div className="text-center py-16">
           <p className="text-zinc-500 text-sm">Nothing found for <span className="text-white">"{q}"</span></p>
@@ -231,10 +225,8 @@ export default function SearchResults() {
         </div>
       )}
 
-      {/* Results */}
       {!loading && results && total > 0 && (
         <div className="flex flex-col gap-8">
-          {/* Stats + filter tabs */}
           <div className="flex items-center justify-between gap-4 -mb-4 flex-wrap">
             <p className="text-zinc-600 text-xs">
               {total} result{total !== 1 ? 's' : ''} for <span className="text-zinc-400">"{q}"</span>
@@ -262,25 +254,34 @@ export default function SearchResults() {
             </div>
           </div>
 
-          {filter.has('movies') && (
-            <Section label="Movies" color="text-rose-400" count={results.movies.length}>
-              {results.movies.map(m => <MovieCard key={m.id} m={m} />)}
-            </Section>
-          )}
-          {filter.has('music') && (
-            <Section label="Music" color="text-violet-400" count={results.tracks.length}>
-              {results.tracks.map(t => <TrackCard key={t.id} t={t} />)}
-            </Section>
-          )}
-          {filter.has('games') && (
-            <Section label="Games" color="text-emerald-400" count={results.games.length}>
-              {results.games.map(g => <GameCard key={g.id} g={g} />)}
-            </Section>
-          )}
+          {(() => {
+            const cap = filter.size === 3 ? 3 : 9;
+            const movies = results.movies.slice(0, cap);
+            const tracks = results.tracks.slice(0, cap);
+            const games  = results.games.slice(0, cap);
+            return (
+              <>
+                {filter.has('movies') && (
+                  <Section label="Movies" color="text-rose-400" count={movies.length}>
+                    {movies.map(m => <MovieCard key={m.id} m={m} />)}
+                  </Section>
+                )}
+                {filter.has('music') && (
+                  <Section label="Music" color="text-violet-400" count={tracks.length}>
+                    {tracks.map(t => <TrackCard key={t.id} t={t} />)}
+                  </Section>
+                )}
+                {filter.has('games') && (
+                  <Section label="Games" color="text-emerald-400" count={games.length}>
+                    {games.map(g => <GameCard key={g.id} g={g} />)}
+                  </Section>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
-      {/* Empty state — no query */}
       {!loading && !results && !q && (
         <div className="text-center py-20">
           <p className="text-zinc-600 text-sm">Start typing to search across movies, music & games</p>

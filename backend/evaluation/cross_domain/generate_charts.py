@@ -11,16 +11,16 @@ THIS_DIR = Path(__file__).parent
 data = json.load(open(THIS_DIR / "results.json", encoding="utf-8"))
 
 ALGOS  = ["hybrid", "semantic", "random"]
-LABELS = ["Hybrid", "Semantic only", "Random"]
-COLORS = ["#06b6d4", "#a78bfa", "#94a3b8"]   
+LABELS = ["Гібридний", "Лише семантика", "Випадковий"]
+COLORS = ["#06b6d4", "#a78bfa", "#94a3b8"]
 
 
 def chart_lift():
-    metrics  = [("score", "Semantic score"),
-                ("shared_tags", "Shared tags"),
-                ("overlap_rate", "Overlap rate")]
+    metrics  = [("score", "Семантична подібність"),
+                ("shared_tags", "Спільні теги"),
+                ("overlap_rate", "Частка з перетином")]
 
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
+    fig, axes = plt.subplots(1, 3, figsize=(15, 6.0))
     x = np.arange(len(ALGOS))
     width = 0.6
 
@@ -31,10 +31,39 @@ def chart_lift():
         bars = ax.bar(x, means, width, yerr=stds, color=COLORS,
                       edgecolor="black", linewidth=0.5, capsize=6)
 
-        for b, m in zip(bars, means):
-            ax.text(b.get_x() + b.get_width() / 2, b.get_height() + max(stds) + (0.02 if key != "shared_tags" else 0.05),
-                    f"{m:.3f}" if key != "overlap_rate" else f"{m:.1%}",
-                    ha="center", va="bottom", fontsize=11, fontweight="bold")
+        if key == "score":
+            ax.set_ylim(0, 1.15)
+            ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        elif key == "overlap_rate":
+            ax.set_ylim(0, 1.15)
+            ax.set_yticks([0, 0.2, 0.4, 0.6, 0.8, 1.0])
+            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
+        else:
+            top = max(means) + max(stds)
+            ax.set_ylim(0, top * 1.7)
+
+        for j, (b, m, s) in enumerate(zip(bars, means, stds)):
+            if key == "overlap_rate":
+                value_str = f"{m:.0%} ±{s*100:.1f}%"
+            else:
+                value_str = f"{m:.2f} ±{s:.2f}"
+            ax.text(b.get_x() + b.get_width() / 2, b.get_height() + s + 0.02,
+                    value_str, ha="center", va="bottom", fontsize=9)
+
+        rand_mean = means[2]
+        hyb_mean = means[0]
+        if rand_mean > 0:
+            lift_rand = hyb_mean / rand_mean
+            ylim_top = ax.get_ylim()[1]
+            badge_y = hyb_mean + stds[0] + 0.11 * ylim_top
+            lift_text = f"{lift_rand:.2f}× vs Випадковий" if key == "score" else f"{lift_rand:.1f}× vs Випадковий"
+            ax.text(
+                x[0], badge_y,
+                lift_text,
+                ha="center", fontsize=9, fontweight="bold", color="#0e7490",
+                bbox=dict(boxstyle="round,pad=0.25", facecolor="#cffafe",
+                          edgecolor="#0e7490", linewidth=0.8),
+            )
 
         ax.set_xticks(x)
         ax.set_xticklabels(LABELS, fontsize=10)
@@ -42,20 +71,13 @@ def chart_lift():
         ax.set_title(label, fontsize=13, fontweight="bold")
         ax.grid(axis="y", alpha=0.3, linestyle="--")
         ax.set_axisbelow(True)
-        if key == "score":
-            ax.set_ylim(0, 1.0)
-        elif key == "overlap_rate":
-            ax.set_ylim(0, 1.0)
-            ax.yaxis.set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:.0%}"))
-        else:
-            ax.set_ylim(0, max(means) * 1.4 + max(stds) * 2)
 
     fig.suptitle(
-        f"Cross-domain evaluation @ K=5  ({data['metadata']['n_seeds']} seeds × "
-        f"{data['metadata']['n_anchors_per_domain']} anchors/domain × 6 pairs, mean ± std)",
-        fontsize=14, fontweight="bold", y=1.02,
+        f"Експериментальна оцінка крос-доменної рекомендації @ K=5  "
+        f"({data['metadata']['n_seeds']} посівів × {data['metadata']['n_anchors_per_domain']} опор/домен × 6 пар, mean ± std)",
+        fontsize=14, fontweight="bold", y=1.00,
     )
-    plt.tight_layout()
+    plt.tight_layout(rect=[0, 0.05, 1, 1])
     out = THIS_DIR / "chart_lift.png"
     plt.savefig(out, dpi=150, bbox_inches="tight")
     plt.close()

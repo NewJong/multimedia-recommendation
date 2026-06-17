@@ -67,7 +67,6 @@ export default function TrackDetail({ id }: { id: number }) {
           Music
         </a>
 
-        {/* Hero */}
         <div className="flex flex-col sm:flex-row gap-7 mb-8">
           {track.image_url
             ? <img src={track.image_url} alt={track.name} className="w-44 h-44 rounded-2xl object-cover shadow-2xl shadow-violet-950/50 flex-shrink-0"/>
@@ -88,7 +87,6 @@ export default function TrackDetail({ id }: { id: number }) {
           </div>
         </div>
 
-        {/* Genres */}
         {genres.length > 0 && (
           <div className="mb-2">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Genres</p>
@@ -98,7 +96,6 @@ export default function TrackDetail({ id }: { id: number }) {
           </div>
         )}
 
-        {/* Tags */}
         {tags.length > 0 && (
           <div className="mb-8 mt-2">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Tags</p>

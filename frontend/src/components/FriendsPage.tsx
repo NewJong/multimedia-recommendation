@@ -4,34 +4,102 @@ import { auth, googleProvider } from '../lib/firebase';
 import { useAuth } from '../hooks/useAuth';
 import { API_BASE } from '../lib/api';
 
-interface FriendUser {
+interface BasicUser {
   firebase_uid: string; name: string; email: string; photo_url: string | null;
 }
 
-function Avatar({ u, size = 'md' }: { u: FriendUser; size?: 'sm' | 'md' }) {
+interface SharedItem { type: 'movie' | 'track' | 'game'; id: number; label: string }
+
+interface UserWithCompat extends BasicUser {
+  compatibility: number;
+  overlap_count: number;
+  shared_sample: SharedItem[];
+  shared_tags:   string[];
+  their_total:   number;
+}
+
+interface SocialResponse {
+  friends:   UserWithCompat[];
+  suggested: UserWithCompat[];
+}
+
+
+function Avatar({ u, size = 'md' }: { u: BasicUser; size?: 'sm' | 'md' }) {
   const sz = size === 'md' ? 'w-10 h-10 text-base' : 'w-8 h-8 text-sm';
   return u.photo_url
     ? <img src={u.photo_url} alt={u.name} referrerPolicy="no-referrer" className={`${sz} rounded-full object-cover flex-shrink-0`} />
     : <div className={`${sz} rounded-full bg-zinc-700 flex items-center justify-center font-semibold text-zinc-300 flex-shrink-0`}>{u.name?.[0] ?? '?'}</div>;
 }
 
+function compatColor(pct: number): string {
+  if (pct >= 70) return 'text-emerald-400';
+  if (pct >= 40) return 'text-yellow-400';
+  return 'text-zinc-400';
+}
+
+function UserCard({ u, accentHover, onRemove }: {
+  u: UserWithCompat;
+  accentHover: string;
+  onRemove?: () => void;
+}) {
+  return (
+    <div className={`flex items-center gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 ${accentHover} transition-all group`}>
+      <a href={`/profile/${u.firebase_uid}`} className="flex items-center gap-3 flex-1 min-w-0">
+        <Avatar u={u} />
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 mb-0.5">
+            <p className="text-white text-sm font-medium truncate group-hover:text-white transition-colors">{u.name}</p>
+            {u.compatibility > 0 && (
+              <span className={`text-xs font-bold flex-shrink-0 ${compatColor(u.compatibility)}`}>
+                {u.compatibility}%
+              </span>
+            )}
+          </div>
+          {u.shared_tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 mb-1">
+              {u.shared_tags.map(t => (
+                <span key={t} className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-300/90">{t}</span>
+              ))}
+            </div>
+          )}
+          {u.shared_sample.length > 0 ? (
+            <p className="text-zinc-500 text-xs truncate">
+              Both liked: {u.shared_sample.map(s => s.label).join(' · ')}
+            </p>
+          ) : (
+            <p className="text-zinc-600 text-xs truncate">{u.email}</p>
+          )}
+        </div>
+      </a>
+      {onRemove && (
+        <button onClick={onRemove}
+          className="flex-shrink-0 px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-500 hover:text-red-400 text-xs transition-all">
+          Remove
+        </button>
+      )}
+    </div>
+  );
+}
+
 export default function FriendsPage() {
   const { user, loading: authLoading } = useAuth();
-  const [friends, setFriends]   = useState<FriendUser[]>([]);
-  const [requests, setRequests] = useState<FriendUser[]>([]);
-  const [search, setSearch]     = useState('');
-  const [searchResults, setSearchRes] = useState<FriendUser[]>([]);
-  const [loaded, setLoaded]     = useState(false);
+  const [friends, setFriends]     = useState<UserWithCompat[]>([]);
+  const [suggested, setSuggested] = useState<UserWithCompat[]>([]);
+  const [requests, setRequests]   = useState<BasicUser[]>([]);
+  const [search, setSearch]       = useState('');
+  const [searchResults, setSearchRes] = useState<BasicUser[]>([]);
+  const [loaded, setLoaded]       = useState(false);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchSeq = useRef(0);
+  const searchSeq   = useRef(0);
 
   useEffect(() => {
     if (authLoading || !user) return;
     Promise.all([
-      fetch(`${API_BASE}/friends/${user.uid}`).then(r => r.json()),
+      fetch(`${API_BASE}/users/social/${user.uid}`).then(r => r.json() as Promise<SocialResponse>),
       fetch(`${API_BASE}/friends/${user.uid}/requests`).then(r => r.json()),
-    ]).then(([f, rq]) => {
-      setFriends(f ?? []);
+    ]).then(([social, rq]) => {
+      setFriends(social.friends ?? []);
+      setSuggested(social.suggested ?? []);
       setRequests(rq ?? []);
       setLoaded(true);
     }).catch(() => setLoaded(true));
@@ -66,18 +134,19 @@ export default function FriendsPage() {
       try {
         const r = await fetch(`${API_BASE}/users/search?q=${encodeURIComponent(q)}`);
         const data = await r.json();
-        // Discard stale responses
         if (seq !== searchSeq.current) return;
-        setSearchRes(data.filter((u: FriendUser) => u.firebase_uid !== user?.uid));
+        setSearchRes(data.filter((u: BasicUser) => u.firebase_uid !== user?.uid));
       } catch {}
     }, 250);
   }
 
   async function acceptReq(fromUid: string) {
     await fetch(`${API_BASE}/friends/${user.uid}/accept/${fromUid}`, { method: 'POST' }).catch(() => {});
-    const accepted = requests.find(r => r.firebase_uid === fromUid);
     setRequests(prev => prev.filter(r => r.firebase_uid !== fromUid));
-    if (accepted) setFriends(prev => [...prev, accepted]);
+    fetch(`${API_BASE}/users/social/${user.uid}`).then(r => r.json()).then((s: SocialResponse) => {
+      setFriends(s.friends ?? []);
+      setSuggested(s.suggested ?? []);
+    });
   }
 
   async function rejectReq(fromUid: string) {
@@ -93,7 +162,6 @@ export default function FriendsPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-8">
 
-      {/* Search */}
       <div>
         <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">Find people</p>
         <input type="text" placeholder="Search by name or email…" value={search}
@@ -116,7 +184,6 @@ export default function FriendsPage() {
         )}
       </div>
 
-      {/* Incoming requests */}
       {requests.length > 0 && (
         <div>
           <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">
@@ -145,7 +212,6 @@ export default function FriendsPage() {
         </div>
       )}
 
-      {/* Friends list */}
       {loaded && (
         <div>
           <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">
@@ -157,22 +223,26 @@ export default function FriendsPage() {
               </p>
             : <div className="space-y-2">
                 {friends.map(u => (
-                  <div key={u.firebase_uid} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-sky-500/30 transition-colors group">
-                    <a href={`/profile/${u.firebase_uid}`} className="flex items-center gap-3 flex-1 min-w-0">
-                      <Avatar u={u} />
-                      <div className="min-w-0">
-                        <p className="text-white text-sm font-medium truncate group-hover:text-sky-200 transition-colors">{u.name}</p>
-                        <p className="text-zinc-500 text-xs truncate">{u.email}</p>
-                      </div>
-                    </a>
-                    <button onClick={() => removeFriend(u.firebase_uid)}
-                      className="flex-shrink-0 px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 bg-zinc-800 hover:bg-red-500/10 border border-zinc-700 hover:border-red-500/30 text-zinc-500 hover:text-red-400 text-xs transition-all">
-                      Remove
-                    </button>
-                  </div>
+                  <UserCard key={u.firebase_uid} u={u}
+                    accentHover="hover:border-sky-500/40 hover:bg-sky-500/5"
+                    onRemove={() => removeFriend(u.firebase_uid)} />
                 ))}
               </div>
           }
+        </div>
+      )}
+
+      {loaded && suggested.length > 0 && (
+        <div>
+          <p className="text-zinc-500 text-xs uppercase tracking-wider mb-3">
+            People you might like · <span className="text-emerald-400">{suggested.length}</span>
+          </p>
+          <div className="space-y-2">
+            {suggested.map(u => (
+              <UserCard key={u.firebase_uid} u={u}
+                accentHover="hover:border-emerald-500/40 hover:bg-emerald-500/5" />
+            ))}
+          </div>
         </div>
       )}
     </div>

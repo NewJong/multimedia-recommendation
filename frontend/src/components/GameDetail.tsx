@@ -76,7 +76,6 @@ export default function GameDetail({ id }: { id: number }) {
           Games
         </a>
 
-        {/* Hero */}
         <div className="flex flex-col sm:flex-row gap-8 mb-8">
           {game.poster_url
             ? <img src={thumbUrl(game.poster_url, 800) ?? ''} alt={game.title}
@@ -106,7 +105,6 @@ export default function GameDetail({ id }: { id: number }) {
           </div>
         </div>
 
-        {/* Dev / publisher */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
           {game.developers?.length > 0 && (
             <div className="bg-zinc-900/60 border border-zinc-800 rounded-xl p-4">
@@ -122,7 +120,6 @@ export default function GameDetail({ id }: { id: number }) {
           )}
         </div>
 
-        {/* Platforms */}
         {game.platforms?.length > 0 && (
           <div className="mb-5">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Platforms</p>
@@ -134,7 +131,6 @@ export default function GameDetail({ id }: { id: number }) {
           </div>
         )}
 
-        {/* Genres */}
         {genres.length > 0 && (
           <div className="mb-2">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Genres</p>
@@ -144,7 +140,6 @@ export default function GameDetail({ id }: { id: number }) {
           </div>
         )}
 
-        {/* Tags */}
         {tags.length > 0 && (
           <div className="mb-8 mt-2">
             <p className="text-zinc-500 text-xs uppercase tracking-wider mb-2">Tags</p>

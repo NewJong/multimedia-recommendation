@@ -66,7 +66,7 @@ def _substring_match(q: str, tracks: list, movies: list, games: list):
     )
 
 
-def _embedding_match(q: str, tables: tuple[str, ...], top_per_domain: int = 3):
+def _embedding_match(q: str, tables: tuple[str, ...], top_per_domain: int = 9):
     if not tables:
         return {}
     model = _get_st_model()
@@ -86,7 +86,8 @@ def _embedding_match(q: str, tables: tuple[str, ...], top_per_domain: int = 3):
                 """, (vec_str, vec_str, top_per_domain))
                 rows = [dict(r) for r in cur.fetchall()]
                 for r in rows:
-                    r["_score"] = round(max(0.0, min(1.0, (float(r["_score"]) - 0.5) * 2)) * 100)
+                    cos = float(r["_score"])
+                    r["_score"] = round(max(0.0, min(1.0, (cos - 0.35) / 0.3)) * 100)
                     r.pop("embedding", None)
                 out[table] = serialize_rows(rows)
     finally:
@@ -114,11 +115,11 @@ async def search(body: SearchBody):
         emb: dict[str, list] = {}
         if sparse_tables:
             try:
-                emb = await asyncio.to_thread(_embedding_match, q, sparse_tables, 3)
+                emb = await asyncio.to_thread(_embedding_match, q, sparse_tables, 9)
             except Exception:
                 emb = {}
 
-        def merge(sub: list, emb_list: list, sub_limit: int = 8, emb_limit: int = 3):
+        def merge(sub: list, emb_list: list, sub_limit: int = 12, emb_limit: int = 9):
             seen = {x["id"] for x in sub[:sub_limit]}
             extras = [e for e in emb_list if e["id"] not in seen][:emb_limit]
             return sub[:sub_limit] + extras
